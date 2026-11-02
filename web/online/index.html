@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Browser – Online</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div id="tabbar">
+    <div id="tabs"></div>
+    <button id="new-tab" title="Neuer Tab">+</button>
+  </div>
+  <div id="toolbar">
+    <button id="back" title="Zurück">&#8592;</button>
+    <button id="forward" title="Vor">&#8594;</button>
+    <button id="reload" title="Neu laden">&#8635;</button>
+    <button id="home" title="Startseite">&#8962;</button>
+    <input id="url" type="text" spellcheck="false" autocomplete="off" placeholder="Suchen oder Adresse eingeben">
+  </div>
+  <div id="progress"></div>
+  <div id="views">
+    <div id="start">
+      <h1>Browser</h1>
+      <form id="start-form">
+        <input id="start-input" type="text" autocomplete="off" placeholder="Im Web suchen oder Adresse eingeben">
+      </form>
+      <div id="quick">
+        <button data-url="https://de.wikipedia.org">Wikipedia</button>
+        <button data-url="https://html.duckduckgo.com/html/">DuckDuckGo</button>
+        <button data-url="https://news.ycombinator.com">Hacker News</button>
+        <button data-url="https://www.srf.ch">SRF</button>
+      </div>
+      <p class="note">
+        Online-Version: Websites werden über diesen Server geladen. Einfache Seiten funktionieren gut,
+        große Seiten wie Google, YouTube oder Seiten mit Login oft nicht.
+        Für alle Websites gibt es die <a href="../" target="_top">Windows-Version zum Herunterladen</a>.
+      </p>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

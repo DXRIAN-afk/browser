@@ -4,10 +4,37 @@
   "description": "Ein einfacher Desktop-Browser auf Basis von Chromium (Electron)",
   "main": "src/main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist:win": "electron-builder --win zip --x64",
+    "build:ftp": "npm run dist:win && node scripts/build-ftp.js"
   },
   "license": "MIT",
   "devDependencies": {
-    "electron": "^33.2.0"
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "author": "Browser",
+  "build": {
+    "appId": "ch.trudog.browser",
+    "productName": "Browser",
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "zip"
+      ],
+      "signAndEditExecutable": false
+    },
+    "artifactName": "Browser-${version}-Windows.${ext}",
+    "electronLanguages": [
+      "de",
+      "en-US"
+    ],
+    "compression": "maximum"
   }
 }

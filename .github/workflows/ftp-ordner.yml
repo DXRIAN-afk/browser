@@ -1,0 +1,23 @@
+name: FTP-Ordner bauen
+
+on:
+  push:
+    paths: ['src/**', 'web/**', 'scripts/**', 'package.json', 'package-lock.json', '.github/workflows/ftp-ordner.yml']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:ftp
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ftp-ordner
+          path: dist/ftp/
+          retention-days: 30
