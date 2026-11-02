@@ -18,6 +18,7 @@ function toUrl(input) {
   if (!text) return HOME;
   if (/^[a-z][a-z0-9+.-]*:\/\//i.test(text) || /^(about|data|file):/i.test(text)) return text;
   if (/^localhost(:\d+)?(\/.*)?$/i.test(text)) return 'http://' + text;
+  if (/^\d{1,3}(\.\d{1,3}){3}(:\d+)?([/?#].*)?$/.test(text)) return 'http://' + text;
   if (!/\s/.test(text) && /^[^\s/]+\.[a-z]{2,}(:\d+)?(\/.*)?$/i.test(text)) return 'https://' + text;
   return SEARCH + encodeURIComponent(text);
 }
@@ -61,9 +62,14 @@ function createTab(url = HOME) {
   view.addEventListener('did-navigate-in-page', onNav);
   view.addEventListener('did-fail-load', (e) => {
     if (!e.isMainFrame || e.errorCode === -3) return; // -3 = abgebrochen
-    title.textContent = 'Fehler';
+    const isBlocked = e.errorCode === -20; // ERR_BLOCKED_BY_CLIENT = vom Admin gesperrt
+    title.textContent = isBlocked ? 'Gesperrt' : 'Fehler';
     const esc = (v) => String(v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    const html = `<html><body style="font:15px system-ui;background:#1e1f22;color:#e3e5e8;padding:60px">
+    const html = isBlocked
+      ? `<html><head><title>Gesperrt</title></head><body style="font:15px system-ui;background:#1e1f22;color:#e3e5e8;padding:60px">
+      <h2>Diese Seite ist gesperrt</h2><p>${esc(e.validatedURL)}</p>
+      <p style="color:#9aa0a6">Der Administrator hat diese Website gesperrt.</p></body></html>`
+      : `<html><body style="font:15px system-ui;background:#1e1f22;color:#e3e5e8;padding:60px">
       <h2>Seite konnte nicht geladen werden</h2><p>${esc(e.validatedURL)}</p>
       <p style="color:#9aa0a6">${esc(e.errorDescription)} (${e.errorCode})</p></body></html>`;
     view.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
@@ -139,5 +145,21 @@ document.addEventListener('keydown', (e) => {
 });
 
 window.browserApi.onOpenTab((url) => createTab(url));
+
+// Konto
+const accountBtn = document.getElementById('account-btn');
+const accountMenu = document.getElementById('account-menu');
+window.browserApi.userInfo().then((u) => {
+  if (!u) return;
+  accountBtn.textContent = u.username;
+  if (u.isAdmin) {
+    const adminBtn = document.getElementById('menu-admin');
+    adminBtn.hidden = false;
+    adminBtn.addEventListener('click', () => createTab(u.server + '/admin/'));
+  }
+});
+accountBtn.addEventListener('click', (e) => { e.stopPropagation(); accountMenu.hidden = !accountMenu.hidden; });
+document.addEventListener('click', () => { accountMenu.hidden = true; });
+document.getElementById('menu-logout').addEventListener('click', () => window.browserApi.logout());
 
 createTab();

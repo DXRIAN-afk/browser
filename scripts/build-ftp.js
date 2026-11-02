@@ -13,14 +13,18 @@ if (!fs.existsSync(zip)) {
 }
 
 fs.rmSync(out, { recursive: true, force: true });
-fs.cpSync(path.join(root, 'web'), out, { recursive: true });
+// Lokale Testdaten (Datenbank, Schlüssel) nicht mitkopieren
+fs.cpSync(path.join(root, 'web'), out, {
+  recursive: true,
+  filter: (src) => !/[\\/]data[\\/](secret\.php|db-.*)$/.test(src),
+});
 fs.copyFileSync(zip, path.join(out, 'Browser-Windows.zip'));
 
 const size = (fs.statSync(zip).size / 1024 / 1024).toFixed(0) + ' MB';
-const indexFile = path.join(out, 'index.html');
+const indexFile = path.join(out, 'index.php');
 fs.writeFileSync(indexFile, fs.readFileSync(indexFile, 'utf8')
   .replaceAll('{{VERSION}}', pkg.version)
   .replaceAll('{{SIZE}}', size));
 
 console.log(`Fertig: ${path.relative(root, out)} (Windows-ZIP ${size})`);
-console.log('Den INHALT dieses Ordners per FTP hochladen.');
+console.log('Den INHALT dieses Ordners per FTP hochladen und danach die Seite im Browser öffnen (Einrichtung).');

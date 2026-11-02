@@ -5,7 +5,7 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "dist:win": "electron-builder --win zip --x64",
+    "dist:win": "node scripts/write-server.js && electron-builder --win zip --x64",
     "build:ftp": "npm run dist:win && node scripts/build-ftp.js"
   },
   "license": "MIT",

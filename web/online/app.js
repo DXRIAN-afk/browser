@@ -1,17 +1,30 @@
 const PROXY = new URL('proxy.php', location.href).href;
+const API = new URL('../api.php', location.href).href;
 const SEARCH = 'https://html.duckduckgo.com/html/?q=';
+const TOKEN = window.BROWSER.token; // Zugangsschlüssel dieser Anmeldung
 
-// Sitzungs-ID, damit der Server Cookies pro Besucher trennen kann
-function makeToken() {
-  const b = new Uint8Array(16);
-  crypto.getRandomValues(b);
-  return Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+// Seitenaufruf an den Server melden (für die Statistik im Admin-Bereich)
+function logVisit(url, title) {
+  fetch(API + '?action=log', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN, 'X-Browser-Token': TOKEN },
+    body: JSON.stringify({ url, title }),
+  }).then((r) => { if (r.status === 401) location.href = '../login.php'; }).catch(() => {});
 }
-let TOKEN;
-try {
-  TOKEN = sessionStorage.getItem('browserToken');
-  if (!/^[a-f0-9]{32}$/.test(TOKEN || '')) { TOKEN = makeToken(); sessionStorage.setItem('browserToken', TOKEN); }
-} catch (e) { TOKEN = makeToken(); }
+// Kurz warten, damit der Seitentitel mitkommt. Wechselt die Seite vorher, wird die alte sofort gemeldet.
+function flushLog(tab) {
+  clearTimeout(tab.logTimer);
+  const p = tab.pending;
+  tab.pending = null;
+  if (p && p.url !== tab.loggedUrl) { tab.loggedUrl = p.url; logVisit(p.url, p.title); }
+}
+function scheduleLog(tab) {
+  if (!tab.url) return;
+  if (tab.pending && tab.pending.url !== tab.url) flushLog(tab);
+  tab.pending = { url: tab.url, title: tab.title };
+  clearTimeout(tab.logTimer);
+  tab.logTimer = setTimeout(() => flushLog(tab), 1500);
+}
 
 const $ = (id) => document.getElementById(id);
 const tabsEl = $('tabs'), viewsEl = $('views'), urlEl = $('url'), startEl = $('start');
@@ -24,6 +37,7 @@ function toUrl(input) {
   const text = input.trim();
   if (/^https?:\/\//i.test(text)) return text;
   if (/^localhost(:\d+)?(\/.*)?$/i.test(text)) return 'http://' + text;
+  if (/^\d{1,3}(\.\d{1,3}){3}(:\d+)?([/?#].*)?$/.test(text)) return 'http://' + text;
   if (!/\s/.test(text) && /^[^\s/]+\.[a-z]{2,}(:\d+)?([/?#].*)?$/i.test(text)) return 'https://' + text;
   return SEARCH + encodeURIComponent(text);
 }
@@ -144,10 +158,12 @@ window.addEventListener('message', (e) => {
     else { try { setTitle(tab, new URL(m.url).hostname); } catch (err) {} }
     if (tab === active && document.activeElement !== urlEl) urlEl.value = m.url;
     if (tab === active) updateNav();
+    scheduleLog(tab);
   } else if (m.type === 'open' && typeof m.url === 'string' && /^https?:/i.test(m.url)) {
     createTab(m.url);
   } else if (m.type === 'error') {
-    setTitle(tab, 'Fehler');
+    if (m.code === 401) { location.href = '../login.php'; return; }
+    setTitle(tab, m.code === 451 ? 'Gesperrt' : 'Fehler');
   } else if (m.type === 'key') {
     if (m.ctrl && m.key === 't') { createTab(); }
     else if (m.ctrl && m.key === 'w') closeTab(active);
@@ -181,6 +197,11 @@ document.addEventListener('keydown', (e) => {
   else if (e.altKey && e.key === 'ArrowLeft') goHistory(-1);
   else if (e.altKey && e.key === 'ArrowRight') goHistory(1);
 });
+
+// Konto-Menü
+const accountMenu = $('account-menu');
+$('account-btn').addEventListener('click', (e) => { e.stopPropagation(); accountMenu.hidden = !accountMenu.hidden; });
+document.addEventListener('click', () => { accountMenu.hidden = true; });
 
 // Link wie  index.html#https://example.com  öffnet direkt diese Seite
 createTab(location.hash.length > 1 ? toUrl(decodeURIComponent(location.hash.slice(1))) : '');

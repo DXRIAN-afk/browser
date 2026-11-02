@@ -31,3 +31,32 @@ footer { text-align: center; color: var(--muted); font-size: 14px; padding: 32px
   h1 { font-size: 36px; }
   main, .features { grid-template-columns: 1fr; }
 }
+
+/* ---- Navigation, Formulare ---- */
+nav.top { max-width: 920px; margin: 0 auto; display: flex; justify-content: flex-end; align-items: center;
+  gap: 18px; padding: 18px 0 0; font-size: 15px; }
+nav.top a { color: var(--text); text-decoration: none; }
+nav.top a:hover { color: var(--accent); }
+nav.top .pill { border: 1.5px solid var(--accent); color: var(--accent); padding: 5px 14px; border-radius: 999px; }
+code.copy { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 6px; background: var(--bg);
+  border: 1px solid var(--line); color: var(--text); cursor: pointer; word-break: break-all; }
+a { color: var(--accent); }
+.muted { color: var(--muted); }
+.small { font-size: 14px; }
+
+body.center { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px 16px; }
+.box { width: min(420px, 100%); background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 30px; }
+.box h1 { font-size: 28px; margin: 0 0 14px; letter-spacing: -.4px; }
+.box p { margin: 0 0 16px; }
+.box .button { width: 100%; border: 0; font: inherit; font-weight: 600; cursor: pointer; margin: 6px 0 16px; }
+label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 14px; }
+input[type=text], input[type=password], input[type=number], input[type=search], input:not([type]), select, textarea {
+  display: block; width: 100%; margin-top: 6px; padding: 10px 12px; font: inherit; font-weight: 400;
+  color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; outline: none; }
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+label.check { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; color: var(--muted); }
+label.check input { margin-top: 4px; flex: none; }
+.msg { padding: 10px 14px; border-radius: 10px; background: #4f8cff1f; border: 1px solid #4f8cff55; font-size: 15px; }
+.msg.error { background: #ef44441f; border-color: #ef444466; }
+.msg.ok { background: #22c55e1f; border-color: #22c55e66; }
+footer { font-size: 13px; }

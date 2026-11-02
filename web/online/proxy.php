@@ -5,13 +5,14 @@
  * (iframe) angezeigt werden kann.
  *
  * Braucht PHP 7.4+ mit der Erweiterung "curl" (bei fast allen Hostern aktiv).
+ * Nur angemeldete Benutzer dürfen ihn verwenden, gesperrte Seiten werden abgewiesen.
  */
+require __DIR__ . '/../lib/app.php';
 
 // ---- Einstellungen ---------------------------------------------------------
 const MAX_BYTES     = 25 * 1024 * 1024;   // größte erlaubte Antwort (25 MB)
 const TIMEOUT       = 25;                 // Sekunden
 const ALLOWED_PORTS = [80, 443, 8080, 8443];
-const BLOCKED_HOSTS = [];                 // z. B. ['example.com', 'boese-seite.de']
 // ---------------------------------------------------------------------------
 
 error_reporting(0);
@@ -40,15 +41,15 @@ if ($method === 'OPTIONS') {
     exit;
 }
 
-function fail(int $code, string $msg): void
+function fail(int $code, string $msg, string $heading = 'Seite konnte nicht geladen werden'): void
 {
     http_response_code($code);
     header('Content-Type: text/html; charset=utf-8');
     $m = htmlspecialchars($msg, ENT_QUOTES, 'UTF-8');
     echo "<!doctype html><meta charset=utf-8><title>Fehler</title>"
        . "<body style=\"font:15px system-ui,sans-serif;background:#1e1f22;color:#e3e5e8;padding:60px\">"
-       . "<h2>Seite konnte nicht geladen werden</h2><p style=\"color:#9aa0a6\">$m</p>"
-       . "<script>parent.postMessage({type:'error',message:" . json_encode($msg) . "},'*')</script></body>";
+       . "<h2>" . htmlspecialchars($heading, ENT_QUOTES, 'UTF-8') . "</h2><p style=\"color:#9aa0a6\">$m</p>"
+       . "<script>parent.postMessage({type:'error',code:$code,message:" . json_encode($msg) . "},'*')</script></body>";
     exit;
 }
 
@@ -61,7 +62,8 @@ if (!function_exists('curl_init')) {
 // stammen aus GET-Formularen und werden an die Zieladresse angehängt.
 $target = $_GET['__u'] ?? '';
 $token  = $_GET['__s'] ?? '';
-if (!preg_match('/^[a-f0-9]{32}$/', $token)) $token = '';
+$user = user_by_token($token);
+if (!$user) fail(401, 'Bitte melde dich an, um den Browser zu benutzen.', 'Nicht angemeldet');
 if ($target === '') fail(400, 'Keine Adresse angegeben.');
 
 $extra = [];
@@ -141,9 +143,7 @@ if (!$parts || !in_array($scheme, ['http', 'https'], true) || empty($parts['host
 $host = strtolower($parts['host']);
 $port = (int)($parts['port'] ?? ($scheme === 'https' ? 443 : 80));
 if (!in_array($port, ALLOWED_PORTS, true)) fail(403, "Port $port ist nicht erlaubt.");
-foreach (BLOCKED_HOSTS as $bh) {
-    if ($host === $bh || substr($host, -strlen($bh) - 1) === ".$bh") fail(403, 'Diese Seite ist gesperrt.');
-}
+if (is_blocked_url($target)) fail(451, "Die Seite $host wurde vom Administrator gesperrt.", 'Seite gesperrt');
 if (strpos($host, ':') !== false || $host[0] === '[') fail(400, 'IPv6-Adressen werden nicht unterstützt.');
 $ips = filter_var($host, FILTER_VALIDATE_IP) ? [$host] : (gethostbynamel($host) ?: []);
 if (!$ips) fail(502, "Die Adresse \"$host\" wurde nicht gefunden.");
@@ -190,8 +190,8 @@ $opts = [
 ];
 if ($method === 'HEAD') $opts[CURLOPT_NOBODY] = true;
 
-if ($token !== '') {
-    $jar = sys_get_temp_dir() . "/webbrowser_cookies_$token.txt";
+if (true) {
+    $jar = sys_get_temp_dir() . '/webbrowser_cookies_' . hash('sha256', $token) . '.txt';
     $opts[CURLOPT_COOKIEFILE] = $jar;
     $opts[CURLOPT_COOKIEJAR] = $jar;
     if (mt_rand(1, 100) === 1) { // alte Cookie-Dateien aufräumen

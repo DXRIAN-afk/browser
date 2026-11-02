@@ -51,3 +51,12 @@ button:disabled { color: #ffffff44; background: none; cursor: default; }
   #home { display: none; }
   .tab { width: 140px; }
 }
+
+#account { position: relative; }
+#account-btn { font-size: 13px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: var(--panel); border-radius: 16px; height: 32px; padding: 0 14px; }
+#account-menu { position: absolute; right: 0; top: 38px; z-index: 10; min-width: 180px; background: var(--panel);
+  border: 1px solid #ffffff1f; border-radius: 10px; padding: 6px; box-shadow: 0 10px 30px #0008; }
+#account-menu a { display: block; color: var(--text); text-decoration: none; padding: 8px 12px; border-radius: 6px; }
+#account-menu a:hover { background: #ffffff14; }
+@media (max-width: 600px) { #account-btn { max-width: 90px; } }

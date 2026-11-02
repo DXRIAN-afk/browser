@@ -1,3 +1,16 @@
+<?php
+require __DIR__ . '/../lib/app.php';
+$user = require_login();
+start_session();
+header('Content-Type: text/html; charset=utf-8');
+header('X-Frame-Options: SAMEORIGIN');
+$config = json_encode([
+    'token' => $_SESSION['web_token'],
+    'user' => $user['username'],
+    'admin' => (bool)$user['is_admin'],
+    'home' => url(''),
+], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP);
+?>
 <!doctype html>
 <html lang="de">
 <head>
@@ -17,6 +30,14 @@
     <button id="reload" title="Neu laden">&#8635;</button>
     <button id="home" title="Startseite">&#8962;</button>
     <input id="url" type="text" spellcheck="false" autocomplete="off" placeholder="Suchen oder Adresse eingeben">
+    <div id="account">
+      <button id="account-btn" title="Konto"><?= h($user['username']) ?></button>
+      <div id="account-menu" hidden>
+        <?php if ($user['is_admin']): ?><a href="<?= h(url('admin/')) ?>" target="_blank">Admin-Bereich</a><?php endif; ?>
+        <a href="<?= h(url('')) ?>">Startseite</a>
+        <a href="<?= h(url('logout.php')) ?>">Abmelden</a>
+      </div>
+    </div>
   </div>
   <div id="progress"></div>
   <div id="views">
@@ -34,10 +55,12 @@
       <p class="note">
         Online-Version: Websites werden über diesen Server geladen. Einfache Seiten funktionieren gut,
         große Seiten wie Google, YouTube oder Seiten mit Login oft nicht.
-        Für alle Websites gibt es die <a href="../" target="_top">Windows-Version zum Herunterladen</a>.
+        Für alle Websites gibt es die <a href="<?= h(url('')) ?>" target="_top">Windows-Version zum Herunterladen</a>.
+        Besuchte Seiten und Suchanfragen werden gespeichert.
       </p>
     </div>
   </div>
+  <script>window.BROWSER = <?= $config ?>;</script>
   <script src="app.js"></script>
 </body>
 </html>
