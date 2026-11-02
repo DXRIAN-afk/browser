@@ -1,0 +1,36 @@
+:root {
+  --bg: #1e1f22; --panel: #2b2d31; --tab: #313338; --tab-active: #3b3d44;
+  --text: #e3e5e8; --muted: #9aa0a6; --accent: #4f8cff;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+  font: 13px system-ui, "Segoe UI", sans-serif; overflow: hidden; }
+body { display: flex; flex-direction: column; }
+
+#tabbar { display: flex; align-items: flex-end; gap: 2px; padding: 6px 6px 0; background: var(--bg); }
+#tabs { display: flex; gap: 2px; overflow-x: auto; min-width: 0; }
+.tab { display: flex; align-items: center; gap: 6px; width: 200px; min-width: 80px; padding: 7px 8px 7px 10px;
+  background: var(--tab); border-radius: 8px 8px 0 0; cursor: default; user-select: none; }
+.tab.active { background: var(--tab-active); }
+.tab img { width: 16px; height: 16px; flex: none; }
+.tab .title { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.tab .close { border: 0; background: none; color: var(--muted); cursor: pointer; border-radius: 4px; padding: 0 4px; }
+.tab .close:hover { background: #ffffff22; color: var(--text); }
+
+button { background: none; border: 0; color: var(--text); font-size: 16px; cursor: pointer;
+  border-radius: 6px; padding: 4px 9px; }
+button:hover { background: #ffffff18; }
+button:disabled { color: #ffffff44; background: none; cursor: default; }
+#new-tab { margin-bottom: 3px; }
+
+#toolbar { display: flex; align-items: center; gap: 4px; padding: 6px; background: var(--tab-active); }
+#url { flex: 1; height: 30px; padding: 0 14px; border-radius: 15px; border: 1px solid transparent;
+  background: var(--panel); color: var(--text); font-size: 14px; outline: none; }
+#url:focus { border-color: var(--accent); }
+
+#progress { height: 2px; background: var(--accent); width: 0; transition: width .3s, opacity .4s; opacity: 0; }
+#progress.loading { width: 70%; opacity: 1; }
+
+#views { flex: 1; position: relative; }
+webview { display: flex; position: absolute; inset: 0; width: 100%; height: 100%; background: #fff; }
+webview.hidden { visibility: hidden; }

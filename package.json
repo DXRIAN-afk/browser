@@ -1,0 +1,13 @@
+{
+  "name": "browser",
+  "version": "0.1.0",
+  "description": "Ein einfacher Desktop-Browser auf Basis von Chromium (Electron)",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^33.2.0"
+  }
+}

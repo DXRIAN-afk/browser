@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src * data:">
+  <title>Browser</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="tabbar">
+    <div id="tabs"></div>
+    <button id="new-tab" title="Neuer Tab (Strg+T)">+</button>
+  </div>
+  <div id="toolbar">
+    <button id="back" title="Zurück (Alt+←)">&#8592;</button>
+    <button id="forward" title="Vor (Alt+→)">&#8594;</button>
+    <button id="reload" title="Neu laden (F5)">&#8635;</button>
+    <button id="home" title="Startseite">&#8962;</button>
+    <input id="url" type="text" spellcheck="false" placeholder="Suchen oder Adresse eingeben">
+  </div>
+  <div id="progress"></div>
+  <div id="views"></div>
+  <script src="renderer.js"></script>
+</body>
+</html>
