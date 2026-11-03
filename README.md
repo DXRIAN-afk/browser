@@ -13,7 +13,7 @@ Die Portable-Version speichert Anmeldung und Cookies im Ordner `SchoolWeb-Daten`
 
 ## Auf den Webspace hochladen
 
-1. Den fertigen Ordner holen: Im Repository liegt er als Ordner **`ftp-ordner/`**. Alternativ auf GitHub unter
+1. Den fertigen Ordner holen: Im Repository liegt er als Ordner **`ftp-ordner/`** (alles darin hochladen). Alternativ auf GitHub unter
    **Actions → FTP-Ordner bauen** den neuesten Lauf öffnen und unten **ftp-ordner** herunterladen, oder selbst bauen (siehe unten).
 2. Den **Inhalt** per FTP hochladen (z. B. mit FileZilla), etwa nach `public_html/browser/`.
 3. Der Ordner `data/` muss für PHP beschreibbar sein (in FileZilla: Rechtsklick → Dateiberechtigungen → `755`, falls nötig `775`).
