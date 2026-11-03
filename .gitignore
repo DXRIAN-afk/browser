@@ -1,2 +1,5 @@
 node_modules/
 dist/
+src/server.json
+web/data/secret.php
+web/data/db-*

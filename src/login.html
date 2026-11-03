@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'">
+  <title>Browser – Anmelden</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="login">
+  <form id="form" class="login-box">
+    <div class="logo"></div>
+    <h1>Anmelden</h1>
+    <p class="hint">Um den Browser zu benutzen, melde dich mit deinem Konto an.</p>
+    <p id="msg" class="msg" hidden></p>
+    <label id="server-field">Server-Adresse
+      <input id="server" type="text" spellcheck="false" placeholder="z. B. deine-seite.ch/browser" required>
+    </label>
+    <label>Benutzername<input id="username" type="text" spellcheck="false" autocomplete="username" required></label>
+    <label>Passwort<input id="password" type="password" autocomplete="current-password" required></label>
+    <button id="submit" type="submit">Anmelden</button>
+    <p class="hint small">Noch kein Konto? <a href="#" id="register">Auf der Website registrieren</a></p>
+    <p class="hint small">Besuchte Seiten und Suchanfragen werden mit deinem Benutzernamen gespeichert und sind für den Administrator sichtbar.</p>
+  </form>
+  <script src="login.js"></script>
+</body>
+</html>
