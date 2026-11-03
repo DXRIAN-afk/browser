@@ -26,28 +26,39 @@ page_start('SchoolWeb – Download', 'home');
     <?php if (!$user): ?><p class="muted small">Zum Benutzen brauchst du ein Konto.</p><?php endif; ?>
   </header>
 
-  <main>
+  <main class="three">
     <section class="card primary">
-      <h2>Für Windows herunterladen</h2>
-      <p>Version {{VERSION}} · Windows 10/11 (64-Bit) · {{SIZE}}</p>
-      <a class="button" href="SchoolWeb-Windows.zip" download>Herunterladen</a>
-      <ol>
-        <li><b>Vor dem Entpacken:</b> Rechtsklick auf die ZIP-Datei → <b>Eigenschaften</b> → unten bei „Sicherheit“
-          ein Häkchen bei <b>Zulassen</b> → <b>OK</b>. Dann kommt keine Windows-Warnung.</li>
-        <li>Rechtsklick → <b>Alle extrahieren</b>, dann im Ordner <b>SchoolWeb.exe</b> starten.</li>
-        <li>Kommt trotzdem „Der Computer wurde durch Windows geschützt“: <b>Weitere Informationen</b> → <b>Trotzdem ausführen</b>.</li>
-        <li>Mit deinem Konto anmelden. Server-Adresse:
-          <code class="copy" title="Klicken zum Kopieren"><?= h(base_url()) ?></code></li>
-      </ol>
+      <span class="badge">Empfohlen</span>
+      <h2>Windows</h2>
+      <p>Version {{VERSION}} · ZIP · {{SIZE}}<br>Startet am schnellsten. Zum Entpacken und Behalten auf dem PC.</p>
+      <a class="button" href="SchoolWeb-Windows.zip" download>ZIP herunterladen</a>
     </section>
 
     <section class="card">
-      <h2>Online benutzen</h2>
-      <p>Ohne Installation direkt hier im Browser. Einfache Seiten funktionieren gut, große Seiten wie Google,
-        YouTube oder Spiele-Seiten oft nicht. Dafür gibt es die Windows-Version.</p>
-      <a class="button secondary" href="<?= h(url('online/')) ?>">Online-Version öffnen</a>
+      <h2>Portable</h2>
+      <p>Version {{VERSION}} · eine .exe · {{SIZE_PORTABLE}}<br>Ohne Entpacken und ohne Installation, läuft auch vom USB-Stick.</p>
+      <a class="button secondary" href="SchoolWeb-Portable.exe" download>Portable herunterladen</a>
+    </section>
+
+    <section class="card">
+      <h2>Online</h2>
+      <p>Ohne Download direkt hier im Browser.<br>Einfache Seiten laufen gut, Google, YouTube und Spiele-Seiten oft nicht.</p>
+      <a class="button secondary" href="<?= h(url('online/')) ?>">Online öffnen</a>
     </section>
   </main>
+
+  <section class="howto">
+    <h2>So startest du SchoolWeb unter Windows</h2>
+    <ol>
+      <li><b>ZIP:</b> Vor dem Entpacken Rechtsklick auf die Datei → <b>Eigenschaften</b> → unten bei „Sicherheit“ Häkchen bei
+        <b>Zulassen</b> → <b>OK</b>. Dann Rechtsklick → <b>Alle extrahieren</b> und <b>SchoolWeb.exe</b> starten.</li>
+      <li><b>Portable:</b> <b>SchoolWeb-Portable.exe</b> einfach doppelklicken. Der erste Start dauert ein paar Sekunden.
+        Deine Anmeldung wird im Ordner <b>SchoolWeb-Daten</b> neben der Datei gespeichert.</li>
+      <li>Zeigt Windows „Der Computer wurde durch Windows geschützt“: <b>Weitere Informationen</b> → <b>Trotzdem ausführen</b>.</li>
+      <li>Mit deinem Konto anmelden. Server-Adresse:
+        <code class="copy" title="Klicken zum Kopieren"><?= h(base_url()) ?></code></li>
+    </ol>
+  </section>
 
   <a class="hexa" href="https://hexa.da-rtx.ch" target="_blank" rel="noopener">
     <span class="hexa-icon" aria-hidden="true"></span>

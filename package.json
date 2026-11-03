@@ -5,7 +5,7 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "dist:win": "node scripts/write-server.js && electron-builder --win zip --x64",
+    "dist:win": "node scripts/write-server.js && electron-builder --win --x64",
     "build:ftp": "npm run dist:win && node scripts/build-ftp.js"
   },
   "license": "MIT",
@@ -28,7 +28,8 @@
     },
     "win": {
       "target": [
-        "zip"
+        "zip",
+        "portable"
       ],
       "signAndEditExecutable": false,
       "icon": "assets/icon.ico"
@@ -40,6 +41,9 @@
     ],
     "compression": "maximum",
     "copyright": "© 2026 Darian",
-    "afterPack": "scripts/after-pack.js"
+    "afterPack": "scripts/after-pack.js",
+    "portable": {
+      "artifactName": "SchoolWeb-${version}-Portable.${ext}"
+    }
   }
 }
