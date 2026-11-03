@@ -2,6 +2,12 @@ const { app, BrowserWindow, Menu, ipcMain, session, shell } = require('electron'
 const fs = require('fs');
 const path = require('path');
 
+// Portable-Version: alle Daten (Anmeldung, Cookies) im Ordner neben der .exe speichern,
+// damit SchoolWeb z. B. vom USB-Stick läuft und auf dem PC nichts zurückbleibt
+if (process.env.PORTABLE_EXECUTABLE_DIR) {
+  app.setPath('userData', path.join(process.env.PORTABLE_EXECUTABLE_DIR, 'SchoolWeb-Daten'));
+}
+
 // Server-Adresse kann beim Bauen fest eingetragen werden (scripts/write-server.js)
 let DEFAULT_SERVER = '';
 try { DEFAULT_SERVER = require('./server.json').server || ''; } catch (e) {}

@@ -105,3 +105,17 @@ label.check input { margin-top: 4px; flex: none; }
   nav.top { flex-wrap: wrap; gap: 10px 16px; }
   nav.top .muted { display: none; }
 }
+
+/* Drei Varianten */
+main.three { grid-template-columns: repeat(3, 1fr); }
+main.three .card { display: flex; flex-direction: column; position: relative; }
+main.three .card p { flex: 1; }
+main.three .button { align-self: flex-start; }
+.card .badge { position: absolute; top: -11px; left: 22px; font-size: 12px; font-weight: 700; color: #fff; padding: 3px 10px;
+  border-radius: 999px; background: var(--grad); }
+.howto { max-width: 960px; margin: 18px auto 0; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 22px 26px; }
+.howto h2 { margin: 0 0 6px; font-size: 18px; }
+.howto ol { color: var(--muted); padding-left: 20px; margin: 10px 0 0; font-size: 15px; }
+.howto li { margin-bottom: 8px; }
+.howto b { color: var(--text); font-weight: 600; }
+@media (max-width: 860px) { main.three { grid-template-columns: 1fr; gap: 24px; } }

@@ -3,17 +3,18 @@
 Ein Browser, den du über deinen Webspace (FTP) anbietest. Zum Benutzen braucht man ein Konto.
 Als Admin siehst du, wer ihn nutzt und was gesucht wird, und kannst Seiten sperren.
 
-| | Windows-Version | Online-Version |
-|---|---|---|
-| Wie | herunterladen und `SchoolWeb.exe` starten | direkt im Browser unter `…/online/` |
-| Engine | Chromium (wie Edge und Chrome) | Proxy über deinen Server (PHP) |
-| Websites | praktisch alle | einfache Seiten gut, Google/YouTube/Logins oft nicht |
-| Anmeldung, Statistik, Sperren | ja | ja |
+| | Windows (ZIP) | Portable | Online |
+|---|---|---|---|
+| Wie | entpacken, `SchoolWeb.exe` starten | `SchoolWeb-Portable.exe` doppelklicken | im Browser unter `…/online/` |
+| Installation | entpacken | keine, läuft auch vom USB-Stick | keine |
+| Websites | praktisch alle (Chromium) | praktisch alle (Chromium) | einfache Seiten, Google/YouTube/Spiele oft nicht |
+
+Die Portable-Version speichert Anmeldung und Cookies im Ordner `SchoolWeb-Daten` neben der `.exe`.
 
 ## Auf den Webspace hochladen
 
-1. Den fertigen Ordner holen: auf GitHub unter **Actions → FTP-Ordner bauen** den neuesten Lauf öffnen
-   und unten **ftp-ordner** herunterladen, oder selbst bauen (siehe unten).
+1. Den fertigen Ordner holen: Im Repository liegt er als Ordner **`ftp-ordner/`** (alles darin hochladen). Alternativ auf GitHub unter
+   **Actions → FTP-Ordner bauen** den neuesten Lauf öffnen und unten **ftp-ordner** herunterladen, oder selbst bauen (siehe unten).
 2. Den **Inhalt** per FTP hochladen (z. B. mit FileZilla), etwa nach `public_html/browser/`.
 3. Der Ordner `data/` muss für PHP beschreibbar sein (in FileZilla: Rechtsklick → Dateiberechtigungen → `755`, falls nötig `775`).
 4. `https://deine-seite.ch/browser/` aufrufen. Beim ersten Mal legst du dort dein **Administrator-Konto** an.
@@ -26,7 +27,8 @@ admin/                 Admin-Bereich
 online/                Online-Version (Proxy)
 lib/                   Programmcode und config.php (gesperrt für Besucher)
 data/                  Datenbank (gesperrt für Besucher)
-SchoolWeb-Windows.zip  die Windows-Version
+SchoolWeb-Windows.zip  die Windows-Version (ZIP)
+SchoolWeb-Portable.exe die Portable-Version
 ```
 
 **Voraussetzungen:** PHP 7.4 oder neuer mit den Erweiterungen `pdo_sqlite` (oder `pdo_mysql`) und `curl`. Das haben fast alle Hoster.
@@ -92,5 +94,5 @@ Voraussetzung: [Node.js](https://nodejs.org/) 18 oder neuer.
 ```bash
 npm install
 npm start            # Desktop-Browser direkt starten
-npm run build:ftp    # Windows-ZIP bauen und dist/ftp/ zusammenstellen
+npm run build:ftp    # Windows-ZIP und Portable bauen, dist/ftp/ zusammenstellen
 ```
