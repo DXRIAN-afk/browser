@@ -1,7 +1,7 @@
 {
   "name": "browser",
-  "version": "0.1.0",
-  "description": "Ein einfacher Desktop-Browser auf Basis von Chromium (Electron)",
+  "version": "0.2.0",
+  "description": "SchoolWeb – Browser auf Chromium-Basis mit Konten, Favoriten und Admin-Bereich",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
@@ -11,14 +11,16 @@
   "license": "MIT",
   "devDependencies": {
     "electron": "^33.2.0",
-    "electron-builder": "^25.1.8"
+    "electron-builder": "^25.1.8",
+    "resedit": "^2.0.3"
   },
-  "author": "Browser",
+  "author": "Darian",
   "build": {
-    "appId": "ch.trudog.browser",
-    "productName": "Browser",
+    "appId": "ch.da-rtx.schoolweb",
+    "productName": "SchoolWeb",
     "files": [
       "src/**/*",
+      "assets/**/*",
       "package.json"
     ],
     "directories": {
@@ -28,13 +30,16 @@
       "target": [
         "zip"
       ],
-      "signAndEditExecutable": false
+      "signAndEditExecutable": false,
+      "icon": "assets/icon.ico"
     },
-    "artifactName": "Browser-${version}-Windows.${ext}",
+    "artifactName": "SchoolWeb-${version}-Windows.${ext}",
     "electronLanguages": [
       "de",
       "en-US"
     ],
-    "compression": "maximum"
+    "compression": "maximum",
+    "copyright": "© 2026 Darian",
+    "afterPack": "scripts/after-pack.js"
   }
 }

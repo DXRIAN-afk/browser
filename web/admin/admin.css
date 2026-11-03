@@ -134,3 +134,27 @@ code { background: var(--soft); padding: 3px 8px; border-radius: 6px; word-break
   .grid2 { grid-template-columns: 1fr; }
   .t td.page { max-width: 220px; }
 }
+
+/* SchoolWeb */
+:root { --accent: #6d3df2; --bar: #6d3df2; --grad: linear-gradient(100deg, #22d3ee, #8b5cf6 50%, #f43f9e); }
+@media (prefers-color-scheme: dark) { :root { --accent: #a78bfa; --bar: #8b5cf6; } }
+.brand b { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.brand img { display: block; }
+.badge { display: inline-block; min-width: 18px; padding: 0 6px; border-radius: 999px; background: #f43f9e; color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
+.notice { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; padding: 12px 16px; border-radius: 12px; color: var(--text);
+  background: color-mix(in srgb, #f43f9e 12%, var(--card)); border: 1px solid color-mix(in srgb, #f43f9e 35%, transparent); }
+.notice span { margin-left: auto; color: var(--accent); }
+.notice:hover { text-decoration: none; filter: brightness(1.05); }
+.headr { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.msgcard.open { border-left: 4px solid #f43f9e; }
+.mhead { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin-bottom: 8px; }
+.mbody { white-space: pre-wrap; word-wrap: break-word; font-size: 15px; }
+.mreply { margin-top: 12px; padding: 10px 14px; border-radius: 10px; border-left: 3px solid var(--accent); background: var(--soft); white-space: pre-wrap; }
+.mform { margin-top: 12px; }
+.mform textarea { display: block; width: 100%; padding: 9px 12px; font: inherit; color: var(--text); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 9px; outline: none; resize: vertical; margin-bottom: 8px; }
+.mform textarea:focus { border-color: var(--accent); }
+.mform .actions { margin: 0; }
+.foot { text-align: center; color: var(--muted); font-size: 12px; padding: 0 0 30px; }
+.foot a { color: var(--muted); }
+.sig { letter-spacing: .08em; opacity: .7; }

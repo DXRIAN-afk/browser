@@ -55,14 +55,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash("Passwort von $name wurde geändert.");
                 break;
             case 'user_delete':
-                foreach (['visits', 'searches', 'tokens'] as $t) q("DELETE FROM $t WHERE user_id = ?", [$id]);
+                foreach (['visits', 'searches', 'tokens', 'favorites', 'messages'] as $t) q("DELETE FROM $t WHERE user_id = ?", [$id]);
                 q('DELETE FROM users WHERE id = ?', [$id]);
                 flash("$name und der ganze Verlauf wurden gelöscht.");
                 back('page=users');
         }
         back("page=user&id=$id");
     }
+    // Suchverlauf und Verlauf löschen
+    if ($a === 'delete_search') { q('DELETE FROM searches WHERE id = ?', [$id]); flash('Suchanfrage gelöscht.'); back($ret ?: 'page=searches'); }
+    if ($a === 'delete_search_term') {
+        $term = (string)($_POST['term'] ?? '');
+        q('DELETE FROM searches WHERE LOWER(query) = LOWER(?)', [$term]);
+        flash('Alle Suchen nach „' . $term . '“ wurden gelöscht.');
+        back($ret ?: 'page=searches');
+    }
+    if ($a === 'clear_searches') { q('DELETE FROM searches'); flash('Der gesamte Suchverlauf wurde gelöscht.'); back('page=searches'); }
+    if ($a === 'delete_visit') { q('DELETE FROM visits WHERE id = ?', [$id]); flash('Eintrag gelöscht.'); back($ret ?: 'page=history'); }
+    if ($a === 'user_clear_searches') { q('DELETE FROM searches WHERE user_id = ?', [$id]); flash('Suchverlauf dieser Person gelöscht.'); back("page=user&id=$id"); }
+    if ($a === 'user_clear_visits') { q('DELETE FROM visits WHERE user_id = ?', [$id]); flash('Seitenverlauf dieser Person gelöscht.'); back("page=user&id=$id"); }
+
+    // Nachrichten
+    if ($a === 'msg_reply') {
+        $reply = trim((string)($_POST['reply'] ?? ''));
+        if ($reply === '') flash('Bitte eine Antwort eingeben.', 'error');
+        else { q("UPDATE messages SET reply = ?, replied_at = ?, reply_seen = 0, status = 'done' WHERE id = ?", [mb_substr($reply, 0, 4000), time(), $id]); flash('Antwort gesendet. Die Person sieht sie in der App und unter „Hilfe“.'); }
+        back('page=messages');
+    }
+    if ($a === 'msg_done') { q("UPDATE messages SET status = 'done' WHERE id = ?", [$id]); flash('Als erledigt markiert.'); back('page=messages'); }
+    if ($a === 'msg_open') { q("UPDATE messages SET status = 'open' WHERE id = ?", [$id]); flash('Wieder offen.'); back('page=messages&show=all'); }
+    if ($a === 'msg_delete') { q('DELETE FROM messages WHERE id = ?', [$id]); flash('Nachricht gelöscht.'); back('page=messages&show=all'); }
+
     if ($a === 'settings') {
+        $engine = (string)($_POST['search_engine'] ?? 'google');
+        if (isset(SEARCH_OPTIONS[$engine])) set_setting('search_engine', $engine);
         set_setting('registration_open', empty($_POST['registration_open']) ? '0' : '1');
         set_setting('retention_days', (string)max(0, min(3650, (int)($_POST['retention_days'] ?? 0))));
         flash('Einstellungen gespeichert.');
@@ -87,7 +113,8 @@ $ranges = [1 => 'Heute', 7 => '7 Tage', 30 => '30 Tage', 0 => 'Alles'];
 $flash = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
 
-$nav = ['dashboard' => 'Übersicht', 'searches' => 'Suchanfragen', 'history' => 'Verlauf', 'users' => 'Benutzer', 'blocked' => 'Gesperrte Seiten', 'settings' => 'Einstellungen'];
+$openMessages = (int)q("SELECT COUNT(*) FROM messages WHERE status = 'open'")->fetchColumn();
+$nav = ['dashboard' => 'Übersicht', 'messages' => 'Nachrichten', 'searches' => 'Suchanfragen', 'history' => 'Verlauf', 'users' => 'Benutzer', 'blocked' => 'Gesperrte Seiten', 'settings' => 'Einstellungen'];
 $current = $page === 'user' ? 'users' : $page;
 
 header('Content-Type: text/html; charset=utf-8');
@@ -98,14 +125,16 @@ header('X-Frame-Options: DENY');
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Admin – Browser</title>
+  <title>Admin – SchoolWeb</title>
+  <meta name="author" content="Darian">
+  <link rel="icon" href="../assets/favicon-32.png">
   <link rel="stylesheet" href="admin.css">
 </head>
 <body>
 <header class="bar">
-  <a class="brand" href="./"><span class="logo"></span>Browser <span class="muted">Admin</span></a>
-  <nav><?php foreach ($nav as $k => $label): ?><a href="?page=<?= $k ?>" class="<?= $current === $k ? 'active' : '' ?>"><?= $label ?></a><?php endforeach; ?></nav>
-  <div class="me"><span class="muted"><?= h($me['username']) ?></span> <a href="../online/">Browser</a> <a href="../logout.php">Abmelden</a></div>
+  <a class="brand" href="./"><img class="sw-logo" src="../assets/logo.svg" alt="" width="30" height="30"><span>School<b>Web</b></span> <span class="muted">Admin</span></a>
+  <nav><?php foreach ($nav as $k => $label): ?><a href="?page=<?= $k ?>" class="<?= $current === $k ? 'active' : '' ?>"><?= $label ?><?php if ($k === 'messages' && $openMessages): ?> <span class="badge"><?= $openMessages ?></span><?php endif; ?></a><?php endforeach; ?></nav>
+  <div class="me"><span class="muted"><?= h($me['username']) ?></span> <a href="../online/">Online-Browser</a> <a href="../logout.php">Abmelden</a></div>
 </header>
 <main>
 <?php if ($flash): ?><p class="msg <?= h($flash[1]) ?>"><?= h($flash[0]) ?></p><?php endif; ?>
@@ -136,6 +165,13 @@ function block_button(string $domain, string $return = ''): string
     return '<form method="post" class="inline">' . csrf_field() . '<input type="hidden" name="action" value="block"><input type="hidden" name="domain" value="' . h($domain) . '"><input type="hidden" name="return" value="' . h($return) . '">'
          . '<button class="link danger" title="' . h($domain) . ' sperren" onclick="return confirm(\'' . h($domain) . ' für alle sperren?\')">Sperren</button></form>';
 }
+function del_button(string $action, array $fields, string $label = '×', string $confirm = ''): string
+{
+    $f = '';
+    foreach ($fields as $k => $v) $f .= '<input type="hidden" name="' . h($k) . '" value="' . h($v) . '">';
+    return '<form method="post" class="inline">' . csrf_field() . '<input type="hidden" name="action" value="' . h($action) . '">' . $f
+         . '<button class="link danger" title="Löschen"' . ($confirm ? ' onclick="return confirm(\'' . h($confirm) . '\')"' : '') . '>' . $label . '</button></form>';
+}
 function client_tag(string $c): string { return $c === 'app' ? '<span class="tag">App</span>' : '<span class="tag">Online</span>'; }
 
 if ($page === 'dashboard'):
@@ -159,6 +195,7 @@ if ($page === 'dashboard'):
     $wd = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 ?>
   <div class="head"><h1>Übersicht</h1><?php range_tabs('dashboard', $range, $ranges); ?></div>
+  <?php if ($openMessages): ?><a class="notice" href="?page=messages">✉ <?= $openMessages ?> offene Nachricht<?= $openMessages > 1 ? 'en' : '' ?> von Benutzern <span>Ansehen →</span></a><?php endif; ?>
   <div class="tiles">
     <?php foreach ($stats as $l => $v): ?><div class="tile"><div class="tl"><?= $l ?></div><div class="tv"><?= n($v) ?></div></div><?php endforeach; ?>
   </div>
@@ -201,13 +238,17 @@ if ($page === 'dashboard'):
     $engines = q('SELECT engine, COUNT(*) AS c FROM searches WHERE created_at >= ? GROUP BY engine ORDER BY c DESC', [$from])->fetchAll();
     $recent = q('SELECT s.*, u.username FROM searches s LEFT JOIN users u ON u.id = s.user_id WHERE s.created_at >= ? ORDER BY s.id DESC LIMIT 100', [$from])->fetchAll();
 ?>
-  <div class="head"><h1>Suchanfragen</h1><?php range_tabs('searches', $range, $ranges); ?></div>
+  <div class="head"><h1>Suchanfragen</h1>
+    <div class="headr"><?php range_tabs('searches', $range, $ranges); ?>
+      <form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="clear_searches">
+        <button class="btn danger" onclick="return confirm('Den gesamten Suchverlauf aller Benutzer löschen?')">Ganzen Suchverlauf löschen</button></form></div></div>
   <div class="grid2">
     <section class="panel">
       <h2>Top 50 Suchbegriffe</h2>
       <?php if (!$top): ?><p class="empty">Noch keine Suchanfragen in diesem Zeitraum.</p><?php else: ?>
-      <table class="t"><tr><th>#</th><th>Suchbegriff</th><th class="r">Anzahl</th><th class="r">Personen</th></tr>
-        <?php foreach ($top as $i => $r): ?><tr><td class="muted"><?= $i + 1 ?></td><td><?= h($r['term']) ?></td><td class="r"><?= n($r['c']) ?></td><td class="r"><?= n($r['u']) ?></td></tr><?php endforeach; ?>
+      <table class="t"><tr><th>#</th><th>Suchbegriff</th><th class="r">Anzahl</th><th class="r">Personen</th><th></th></tr>
+        <?php foreach ($top as $i => $r): ?><tr><td class="muted"><?= $i + 1 ?></td><td><?= h($r['term']) ?></td><td class="r"><?= n($r['c']) ?></td><td class="r"><?= n($r['u']) ?></td>
+          <td class="r"><?= del_button('delete_search_term', ['term' => $r['term'], 'return' => "page=searches&range=$range"], '×', 'Alle Suchen nach „' . $r['term'] . '“ löschen?') ?></td></tr><?php endforeach; ?>
       </table><?php endif; ?>
     </section>
     <div>
@@ -218,9 +259,10 @@ if ($page === 'dashboard'):
       <section class="panel">
         <h2>Neueste Suchanfragen</h2>
         <?php if (!$recent): ?><p class="empty">Noch keine.</p><?php else: ?>
-        <table class="t small"><tr><th>Zeit</th><th>Benutzer</th><th>Suche</th></tr>
+        <table class="t small"><tr><th>Zeit</th><th>Benutzer</th><th>Suche</th><th></th></tr>
           <?php foreach ($recent as $r): ?><tr><td class="nowrap muted" title="<?= date('d.m.Y H:i', $r['created_at']) ?>"><?= ago((int)$r['created_at']) ?></td>
-            <td><a href="?page=user&id=<?= (int)$r['user_id'] ?>"><?= h($r['username'] ?? '–') ?></a></td><td><?= h($r['query']) ?> <span class="muted">· <?= h($r['engine']) ?></span></td></tr><?php endforeach; ?>
+            <td><a href="?page=user&id=<?= (int)$r['user_id'] ?>"><?= h($r['username'] ?? '–') ?></a></td><td><?= h($r['query']) ?> <span class="muted">· <?= h($r['engine']) ?></span></td>
+            <td class="r"><?= del_button('delete_search', ['id' => $r['id'], 'return' => "page=searches&range=$range"]) ?></td></tr><?php endforeach; ?>
         </table><?php endif; ?>
       </section>
     </div>
@@ -255,7 +297,7 @@ if ($page === 'dashboard'):
         <td><a href="?page=user&id=<?= (int)$r['user_id'] ?>"><?= h($r['username'] ?? '–') ?></a></td>
         <td class="page"><div class="pt"><?= h($r['title'] ?: '(ohne Titel)') ?></div><a class="pu" href="<?= h($r['url']) ?>" target="_blank" rel="noopener noreferrer"><?= h($r['url']) ?></a></td>
         <td class="nowrap"><?= h($r['domain']) ?> <?= client_tag($r['client']) ?></td>
-        <td class="r"><?= block_button($r['domain'], 'page=history') ?></td>
+        <td class="r nowrap"><?= block_button($r['domain'], 'page=history') ?> &nbsp; <?= del_button('delete_visit', ['id' => $r['id'], 'return' => 'page=history']) ?></td>
       </tr><?php endforeach; ?>
     </table><?php endif; ?>
   </section>
@@ -324,6 +366,10 @@ if ($page === 'dashboard'):
     <?= $act('user_delete', 'Konto löschen', 'danger', $u['username'] . ' und den ganzen Verlauf endgültig löschen?') ?>
   </div>
   <?php endif; ?>
+  <div class="actions">
+    <?= $act('user_clear_searches', 'Suchverlauf löschen', 'danger', 'Den ganzen Suchverlauf von ' . $u['username'] . ' löschen?') ?>
+    <?= $act('user_clear_visits', 'Seitenverlauf löschen', 'danger', 'Alle besuchten Seiten von ' . $u['username'] . ' löschen?') ?>
+  </div>
   <form method="post" class="actions"><?= csrf_field() ?><input type="hidden" name="action" value="user_password"><input type="hidden" name="id" value="<?= $id ?>">
     <input name="password" type="password" minlength="8" required placeholder="Neues Passwort (mind. 8 Zeichen)" autocomplete="new-password" style="max-width:300px;margin:0">
     <button class="btn">Passwort ändern</button></form>
@@ -331,7 +377,8 @@ if ($page === 'dashboard'):
     <section class="panel"><h2>Meistbesuchte Websites</h2><?php bar_list($domains, 'domain', 'Noch keine Seitenaufrufe.', fn($r) => block_button($r['domain'], "page=user&id=$id")); ?></section>
     <section class="panel"><h2>Letzte Suchanfragen</h2>
       <?php if (!$searches): ?><p class="empty">Noch keine.</p><?php else: ?><table class="t small">
-        <?php foreach ($searches as $s): ?><tr><td class="nowrap muted"><?= date('d.m. H:i', $s['created_at']) ?></td><td><?= h($s['query']) ?> <span class="muted">· <?= h($s['engine']) ?></span></td></tr><?php endforeach; ?>
+        <?php foreach ($searches as $s): ?><tr><td class="nowrap muted"><?= date('d.m. H:i', $s['created_at']) ?></td><td><?= h($s['query']) ?> <span class="muted">· <?= h($s['engine']) ?></span></td>
+          <td class="r"><?= del_button('delete_search', ['id' => $s['id'], 'return' => "page=user&id=$id"]) ?></td></tr><?php endforeach; ?>
       </table><?php endif; ?></section>
   </div>
   <section class="panel flush"><h2 class="pad">Letzte Seitenaufrufe <a class="small" href="?page=history&user=<?= $id ?>">Alle →</a></h2>
@@ -341,6 +388,30 @@ if ($page === 'dashboard'):
         <td class="nowrap"><?= client_tag($r['client']) ?></td></tr><?php endforeach; ?>
     </table><?php endif; ?></section>
   <?php endif; ?>
+
+<?php elseif ($page === 'messages'):
+    $all = ($_GET['show'] ?? '') === 'all';
+    $rows = q('SELECT m.*, u.username FROM messages m LEFT JOIN users u ON u.id = m.user_id ' . ($all ? '' : "WHERE m.status = 'open' ") . 'ORDER BY m.id DESC LIMIT 200')->fetchAll();
+?>
+  <div class="head"><h1>Nachrichten</h1>
+    <div class="seg"><a href="?page=messages" class="<?= $all ? '' : 'on' ?>">Offen (<?= $openMessages ?>)</a><a href="?page=messages&show=all" class="<?= $all ? 'on' : '' ?>">Alle</a></div></div>
+  <?php if (!$rows): ?><section class="panel"><p class="empty"><?= $all ? 'Noch keine Nachrichten.' : 'Keine offenen Nachrichten. 🎉' ?></p></section><?php endif; ?>
+  <?php foreach ($rows as $m): ?>
+    <section class="panel msgcard <?= $m['status'] === 'open' ? 'open' : '' ?>">
+      <div class="mhead"><a href="?page=user&id=<?= (int)$m['user_id'] ?>"><b><?= h($m['username'] ?? 'gelöschter Benutzer') ?></b></a>
+        <span class="muted"><?= date('d.m.Y H:i', $m['created_at']) ?> · <?= ago((int)$m['created_at']) ?></span>
+        <?= $m['status'] === 'open' ? '<span class="tag blue">offen</span>' : '<span class="tag green">erledigt</span>' ?></div>
+      <div class="mbody"><?= h($m['body']) ?></div>
+      <?php if ($m['reply']): ?><div class="mreply"><b>Deine Antwort</b> <span class="muted">· <?= date('d.m.Y H:i', $m['replied_at']) ?></span><br><?= h($m['reply']) ?></div><?php endif; ?>
+      <form method="post" class="mform"><?= csrf_field() ?><input type="hidden" name="action" value="msg_reply"><input type="hidden" name="id" value="<?= (int)$m['id'] ?>">
+        <textarea name="reply" rows="2" placeholder="<?= $m['reply'] ? 'Antwort ändern …' : 'Antworten …' ?>"></textarea>
+        <div class="actions"><button class="btn primary">Antworten</button>
+          <?php if ($m['status'] === 'open'): ?><button class="btn" name="action" value="msg_done" formnovalidate>Erledigt</button>
+          <?php else: ?><button class="btn" name="action" value="msg_open" formnovalidate>Wieder öffnen</button><?php endif; ?>
+          <button class="btn danger" name="action" value="msg_delete" formnovalidate onclick="return confirm('Nachricht löschen?')">Löschen</button></div>
+      </form>
+    </section>
+  <?php endforeach; ?>
 
 <?php elseif ($page === 'blocked'):
     $rows = q('SELECT * FROM blocked ORDER BY domain')->fetchAll();
@@ -370,6 +441,9 @@ if ($page === 'dashboard'):
     <form method="post" class="form"><?= csrf_field() ?><input type="hidden" name="action" value="settings">
       <label class="check"><input type="checkbox" name="registration_open" value="1" <?= setting('registration_open', '1') === '1' ? 'checked' : '' ?>>
         <span><b>Registrierung offen</b><br>Jeder kann sich selbst ein Konto erstellen. Wenn aus, kannst nur du unter „Benutzer“ Konten anlegen.</span></label>
+      <label>Suchmaschine in den Browsern
+        <select name="search_engine"><?php foreach (SEARCH_OPTIONS as $k => [$name]): ?><option value="<?= $k ?>" <?= search_option()['key'] === $k ? 'selected' : '' ?>><?= h($name) ?></option><?php endforeach; ?></select></label>
+      <p class="muted small" style="margin-top:-6px">Gilt für die Windows-App. Die Online-Version sucht immer mit DuckDuckGo, weil die anderen Suchmaschinen dort nicht funktionieren.</p>
       <label>Verlauf automatisch löschen nach … Tagen (0 = nie)
         <input type="number" name="retention_days" min="0" max="3650" value="<?= (int)setting('retention_days', '0') ?>"></label>
       <button class="btn primary">Speichern</button>
@@ -390,5 +464,7 @@ if ($page === 'dashboard'):
   </section>
 <?php endif; ?>
 </main>
+<footer class="foot"><a href="https://hexa.da-rtx.ch" target="_blank" rel="noopener">hexa.da-rtx.ch</a> · <span class="sig">crafted by D.</span></footer>
+<script src="../assets/egg.js"></script>
 </body>
 </html>

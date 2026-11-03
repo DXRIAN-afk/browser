@@ -6,6 +6,13 @@
  *   GET  api.php?action=me                                    → {username, is_admin}
  *   GET  api.php?action=blocklist                             → {domains: [...]}
  *   POST api.php?action=log        {url, title}               → Seitenaufruf speichern
+ *   GET  api.php?action=config                                → {search_url, search_name}
+ *   GET  api.php?action=favorites                             → {favorites: [...]}
+ *   POST api.php?action=favorite_add    {url, title}
+ *   POST api.php?action=favorite_rename {id, title}
+ *   POST api.php?action=favorite_remove {id}
+ *   GET  api.php?action=messages                              → eigene Nachrichten + Antworten
+ *   POST api.php?action=message_send    {body}
  * Anmeldung über den Header  "Authorization: Bearer <token>".
  */
 require __DIR__ . '/lib/app.php';
@@ -55,7 +62,47 @@ switch ($action) {
 
     case 'me':
         $u = auth();
-        out(['username' => $u['username'], 'is_admin' => (bool)$u['is_admin']]);
+        out(['username' => $u['username'], 'is_admin' => (bool)$u['is_admin'], 'unseen_replies' => unseen_replies((int)$u['id'])]);
+
+    case 'config':
+        auth();
+        $s = search_option();
+        out(['search_url' => $s['url'], 'search_name' => $s['name']]);
+
+    case 'favorites':
+        $u = auth();
+        out(['favorites' => favorites((int)$u['id'])]);
+
+    case 'favorite_add':
+        if ($method !== 'POST') out(['error' => 'POST erwartet'], 405);
+        $u = auth(); $in = input();
+        $f = add_favorite((int)$u['id'], (string)($in['url'] ?? ''), (string)($in['title'] ?? ''));
+        if (!$f) out(['error' => 'Dieser Favorit kann nicht gespeichert werden (höchstens 100).'], 400);
+        out(['favorite' => $f, 'favorites' => favorites((int)$u['id'])]);
+
+    case 'favorite_rename':
+        if ($method !== 'POST') out(['error' => 'POST erwartet'], 405);
+        $u = auth(); $in = input();
+        rename_favorite((int)$u['id'], (int)($in['id'] ?? 0), (string)($in['title'] ?? ''));
+        out(['favorites' => favorites((int)$u['id'])]);
+
+    case 'favorite_remove':
+        if ($method !== 'POST') out(['error' => 'POST erwartet'], 405);
+        $u = auth(); $in = input();
+        remove_favorite((int)$u['id'], (int)($in['id'] ?? 0));
+        out(['favorites' => favorites((int)$u['id'])]);
+
+    case 'messages':
+        $u = auth();
+        $list = user_messages((int)$u['id']);
+        mark_replies_seen((int)$u['id']);
+        out(['messages' => $list]);
+
+    case 'message_send':
+        if ($method !== 'POST') out(['error' => 'POST erwartet'], 405);
+        $u = auth(); $in = input();
+        if (!send_message((int)$u['id'], (string)($in['body'] ?? ''))) out(['error' => 'Die Nachricht ist leer, zu lang (max. 4000 Zeichen) oder du hast schon zu viele gesendet.'], 400);
+        out(['ok' => true, 'messages' => user_messages((int)$u['id'])]);
 
     case 'blocklist':
         auth();
@@ -70,7 +117,7 @@ switch ($action) {
         out(['ok' => true]);
 
     case 'info':
-        out(['name' => 'Browser-Server', 'registration_open' => setting('registration_open', '1') === '1']);
+        out(['name' => APP_NAME, 'registration_open' => setting('registration_open', '1') === '1']);
 
     default:
         out(['error' => 'Unbekannte Aktion'], 404);

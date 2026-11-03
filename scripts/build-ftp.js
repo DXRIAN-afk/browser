@@ -5,7 +5,7 @@ const path = require('path');
 const root = path.join(__dirname, '..');
 const pkg = require(path.join(root, 'package.json'));
 const out = path.join(root, 'dist', 'ftp');
-const zip = path.join(root, 'dist', `Browser-${pkg.version}-Windows.zip`);
+const zip = path.join(root, 'dist', `SchoolWeb-${pkg.version}-Windows.zip`);
 
 if (!fs.existsSync(zip)) {
   console.error('Windows-ZIP fehlt. Zuerst "npm run dist:win" ausführen.');
@@ -18,7 +18,7 @@ fs.cpSync(path.join(root, 'web'), out, {
   recursive: true,
   filter: (src) => !/[\\/]data[\\/](secret\.php|db-.*)$/.test(src),
 });
-fs.copyFileSync(zip, path.join(out, 'Browser-Windows.zip'));
+fs.copyFileSync(zip, path.join(out, 'SchoolWeb-Windows.zip'));
 
 const size = (fs.statSync(zip).size / 1024 / 1024).toFixed(0) + ' MB';
 const indexFile = path.join(out, 'index.php');

@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>SchoolWeb</title>
+  <defs>
+    <linearGradient id="sw-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1230"/>
+      <stop offset=".55" stop-color="#160f3d"/>
+      <stop offset="1" stop-color="#2a0b3a"/>
+    </linearGradient>
+    <linearGradient id="sw-neon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset=".5" stop-color="#8b5cf6"/>
+      <stop offset="1" stop-color="#f43f9e"/>
+    </linearGradient>
+    <linearGradient id="sw-neon-v" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#67e8f9"/>
+      <stop offset=".6" stop-color="#a78bfa"/>
+      <stop offset="1" stop-color="#f472b6"/>
+    </linearGradient>
+    <radialGradient id="sw-core" cx=".42" cy=".38" r=".7">
+      <stop offset="0" stop-color="#3b2a8f" stop-opacity=".95"/>
+      <stop offset=".6" stop-color="#1b1452" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#0d0a2a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sw-halo" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#8b5cf6" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#8b5cf6" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="sw-hexgrid" width="28" height="48.5" patternUnits="userSpaceOnUse" patternTransform="scale(1.1)">
+      <path d="M14 0 L28 8.08 L28 24.25 L14 32.33 L0 24.25 L0 8.08 Z M14 32.33 L14 48.5" fill="none" stroke="#8b9cff" stroke-width="1"/>
+    </pattern>
+    <clipPath id="sw-hexclip">
+      <path d="M267 22 L470 139 Q481 145.5 481 158 L481 354 Q481 366.5 470 373 L267 490 Q256 496 245 490 L42 373 Q31 366.5 31 354 L31 158 Q31 145.5 42 139 L245 22 Q256 16 267 22 Z"/>
+    </clipPath>
+    <filter id="sw-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="sw-softglow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+  </defs>
+
+  <!-- Sechseck-Körper -->
+  <g clip-path="url(#sw-hexclip)">
+    <rect width="512" height="512" fill="url(#sw-bg)"/>
+    <rect width="512" height="512" fill="url(#sw-hexgrid)" opacity=".13"/>
+    <circle cx="256" cy="262" r="210" fill="url(#sw-halo)"/>
+    <!-- Glitch-Streifen im Hintergrund -->
+    <rect x="42" y="118" width="170" height="5" fill="#22d3ee" opacity=".35"/>
+    <rect x="300" y="404" width="170" height="4" fill="#f43f9e" opacity=".4"/>
+    <rect x="60" y="392" width="90" height="3" fill="#8b5cf6" opacity=".5"/>
+  </g>
+  <path d="M267 22 L470 139 Q481 145.5 481 158 L481 354 Q481 366.5 470 373 L267 490 Q256 496 245 490 L42 373 Q31 366.5 31 354 L31 158 Q31 145.5 42 139 L245 22 Q256 16 267 22 Z"
+        fill="none" stroke="url(#sw-neon)" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M267 46 L452 152 Q460 157 460 166 L460 346 Q460 355 452 360 L267 466 Q256 472 245 466 L60 360 Q52 355 52 346 L52 166 Q52 157 60 152 L245 46 Q256 40 267 46 Z"
+        fill="none" stroke="#ffffff" stroke-opacity=".08" stroke-width="2"/>
+
+  <!-- Orbit hinter dem Globus -->
+  <ellipse cx="256" cy="282" rx="176" ry="58" transform="rotate(-18 256 282)" fill="none" stroke="url(#sw-neon)" stroke-width="5" stroke-opacity=".55" stroke-dasharray="300 18 40 18"/>
+
+  <!-- Globus -->
+  <g>
+    <circle cx="256" cy="282" r="118" fill="url(#sw-core)"/>
+    <circle cx="256" cy="282" r="118" fill="none" stroke="#c4b5fd" stroke-opacity=".25" stroke-width="2"/>
+    <g fill="none" stroke="#a5b4fc" stroke-opacity=".45" stroke-width="2.5">
+      <ellipse cx="256" cy="282" rx="58" ry="118"/>
+      <ellipse cx="256" cy="282" rx="96" ry="118" stroke-opacity=".25"/>
+      <path d="M142 248 Q256 228 370 248"/>
+      <path d="M138 282 L374 282"/>
+      <path d="M142 316 Q256 336 370 316"/>
+      <path d="M160 214 Q256 196 352 214" stroke-opacity=".25"/>
+      <path d="M160 350 Q256 368 352 350" stroke-opacity=".25"/>
+    </g>
+    <!-- Glitch-Kopien (chromatische Verschiebung) -->
+    <circle cx="256" cy="282" r="118" fill="none" stroke="#22d3ee" stroke-width="6" stroke-opacity=".5" transform="translate(-6 2)"/>
+    <circle cx="256" cy="282" r="118" fill="none" stroke="#f43f9e" stroke-width="6" stroke-opacity=".5" transform="translate(6 -2)"/>
+    <!-- Globus-Rand und Meridian -->
+    <circle cx="256" cy="282" r="118" fill="none" stroke="url(#sw-neon-v)" stroke-width="7" filter="url(#sw-glow)"/>
+    <path d="M228 172 Q218 282 228 392" fill="none" stroke="url(#sw-neon-v)" stroke-width="5" stroke-opacity=".8" stroke-linecap="round"/>
+    <!-- leise Signatur -->
+    <path d="M228 172 Q218 282 228 392 M228 172 A118 118 0 0 1 228 392" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-opacity=".28" stroke-linecap="round"/>
+    <!-- Glitch-Schnitte -->
+    <rect x="300" y="250" width="86" height="7" fill="#0f0b33"/>
+    <rect x="318" y="244" width="70" height="4" fill="#22d3ee" opacity=".9"/>
+    <rect x="196" y="334" width="60" height="6" fill="#0f0b33"/>
+    <rect x="180" y="341" width="44" height="3" fill="#f43f9e" opacity=".9"/>
+  </g>
+
+  <!-- Satellit auf dem Orbit (vorne) -->
+  <path d="M96 352 Q120 362 150 364" fill="none" stroke="url(#sw-neon)" stroke-width="5" stroke-linecap="round" stroke-opacity=".9"/>
+  <circle cx="404" cy="214" r="22" fill="#f43f9e" filter="url(#sw-softglow)" opacity=".8"/>
+  <circle cx="404" cy="214" r="11" fill="#fff"/>
+  <circle cx="404" cy="214" r="11" fill="none" stroke="#f9a8d4" stroke-width="4"/>
+
+  <!-- Doktorhut -->
+  <g transform="rotate(-10 256 150)">
+    <path d="M200 150 L200 178 Q256 204 312 178 L312 150 Z" fill="#1e1757" stroke="url(#sw-neon)" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M256 92 L362 134 L256 176 L150 134 Z" fill="#2b2177" stroke="url(#sw-neon)" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M256 102 L340 134 L256 166" fill="none" stroke="#ffffff" stroke-opacity=".18" stroke-width="3"/>
+    <circle cx="256" cy="134" r="7" fill="#67e8f9"/>
+    <path d="M256 134 Q318 150 330 172 L330 212" fill="none" stroke="#67e8f9" stroke-width="4" stroke-linecap="round"/>
+    <path d="M322 210 L338 210 L342 236 L318 236 Z" fill="#67e8f9"/>
+  </g>
+
+  <!-- Funken -->
+  <g fill="#ffffff">
+    <path d="M118 176 l4 10 l10 4 l-10 4 l-4 10 l-4 -10 l-10 -4 l10 -4 Z" opacity=".9"/>
+    <circle cx="392" cy="384" r="4" opacity=".8"/>
+    <circle cx="146" cy="420" r="3" opacity=".6"/>
+    <circle cx="378" cy="120" r="2.5" opacity=".7"/>
+  </g>
+</svg>

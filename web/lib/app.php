@@ -19,6 +19,23 @@ const SEARCH_ENGINES = [
     'wikipedia.org'  => ['/', 'search', 'Wikipedia'],
 ];
 
+const APP_NAME = 'SchoolWeb';
+
+// Suchmaschinen, die der Admin für die Apps auswählen kann
+const SEARCH_OPTIONS = [
+    'google'     => ['Google', 'https://www.google.com/search?q='],
+    'bing'       => ['Bing', 'https://www.bing.com/search?q='],
+    'duckduckgo' => ['DuckDuckGo', 'https://duckduckgo.com/?q='],
+    'ecosia'     => ['Ecosia', 'https://www.ecosia.org/search?q='],
+    'startpage'  => ['Startpage', 'https://www.startpage.com/do/search?query='],
+    'brave'      => ['Brave Search', 'https://search.brave.com/search?q='],
+];
+
+// Diese Favoriten bekommt jedes neue Konto
+const DEFAULT_FAVORITES = [
+    ['Hexa', 'https://hexa.da-rtx.ch'],
+];
+
 // ---- Datenbank ---------------------------------------------------------------
 function db(): PDO
 {
@@ -71,11 +88,19 @@ function migrate(PDO $pdo): void
             id $id, domain $txt NOT NULL UNIQUE, note $txt, created_at INT NOT NULL)$end",
         "CREATE TABLE IF NOT EXISTS settings (name $txt PRIMARY KEY, value $long)$end",
         "CREATE TABLE IF NOT EXISTS login_attempts (ip $txt NOT NULL, created_at INT NOT NULL)$end",
+        "CREATE TABLE IF NOT EXISTS favorites (
+            id $id, user_id INT NOT NULL, title $txt NOT NULL, url $long NOT NULL,
+            position INT NOT NULL DEFAULT 0, created_at INT NOT NULL)$end",
+        "CREATE TABLE IF NOT EXISTS messages (
+            id $id, user_id INT NOT NULL, body $long NOT NULL, status $txt NOT NULL DEFAULT 'open',
+            reply $long, replied_at INT NOT NULL DEFAULT 0, reply_seen INT NOT NULL DEFAULT 1,
+            created_at INT NOT NULL)$end",
     ];
     // Nur einmal pro Version ausführen
+    $v = false;
     try {
         $v = $pdo->query("SELECT value FROM settings WHERE name = 'schema'")->fetchColumn();
-        if ($v === '1') return;
+        if ($v === '2') return;
     } catch (Throwable $e) {}
     foreach ($tables as $sql) $pdo->exec($sql);
     foreach ([
@@ -83,9 +108,15 @@ function migrate(PDO $pdo): void
         'CREATE INDEX idx_visits_user ON visits (user_id, created_at)',
         'CREATE INDEX idx_searches_time ON searches (created_at)',
         'CREATE INDEX idx_tokens_user ON tokens (user_id)',
+        'CREATE INDEX idx_favorites_user ON favorites (user_id, position)',
+        'CREATE INDEX idx_messages_user ON messages (user_id)',
     ] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) {} }
+    // Bestehende Konten bekommen beim Update die Standard-Favoriten
+    if (($v ?? false) === '1') {
+        foreach ($pdo->query('SELECT id FROM users')->fetchAll(PDO::FETCH_COLUMN) as $uid) seed_favorites($pdo, (int)$uid);
+    }
     $pdo->exec("DELETE FROM settings WHERE name = 'schema'");
-    $pdo->exec("INSERT INTO settings (name, value) VALUES ('schema', '1')");
+    $pdo->exec("INSERT INTO settings (name, value) VALUES ('schema', '2')");
 }
 
 function q(string $sql, array $params = []): PDOStatement
@@ -116,7 +147,71 @@ function create_user(string $username, string $password, bool $admin = false): i
 {
     q('INSERT INTO users (username, password_hash, is_admin, created_at) VALUES (?, ?, ?, ?)',
       [$username, password_hash($password, PASSWORD_DEFAULT), $admin ? 1 : 0, time()]);
-    return (int)db()->lastInsertId();
+    $id = (int)db()->lastInsertId();
+    seed_favorites(db(), $id);
+    return $id;
+}
+
+function seed_favorites(PDO $pdo, int $userId): void
+{
+    $st = $pdo->prepare('INSERT INTO favorites (user_id, title, url, position, created_at) VALUES (?, ?, ?, ?, ?)');
+    foreach (DEFAULT_FAVORITES as $i => [$title, $url]) $st->execute([$userId, $title, $url, $i, time()]);
+}
+
+// ---- Favoriten ---------------------------------------------------------------
+function favorites(int $userId): array
+{
+    return q('SELECT id, title, url FROM favorites WHERE user_id = ? ORDER BY position, id', [$userId])->fetchAll();
+}
+
+function add_favorite(int $userId, string $url, string $title): ?array
+{
+    if (!preg_match('#^https?://#i', $url) || strlen($url) > 2000) return null;
+    $title = mb_substr(trim($title) ?: host_of($url), 0, 120);
+    $exists = q('SELECT id FROM favorites WHERE user_id = ? AND url = ?', [$userId, $url])->fetchColumn();
+    if ($exists) return ['id' => (int)$exists, 'title' => $title, 'url' => $url];
+    if ((int)q('SELECT COUNT(*) FROM favorites WHERE user_id = ?', [$userId])->fetchColumn() >= 100) return null;
+    $pos = (int)q('SELECT COALESCE(MAX(position), 0) + 1 FROM favorites WHERE user_id = ?', [$userId])->fetchColumn();
+    q('INSERT INTO favorites (user_id, title, url, position, created_at) VALUES (?, ?, ?, ?, ?)', [$userId, $title, $url, $pos, time()]);
+    return ['id' => (int)db()->lastInsertId(), 'title' => $title, 'url' => $url];
+}
+
+function rename_favorite(int $userId, int $id, string $title): void
+{
+    $title = mb_substr(trim($title), 0, 120);
+    if ($title !== '') q('UPDATE favorites SET title = ? WHERE id = ? AND user_id = ?', [$title, $id, $userId]);
+}
+
+function remove_favorite(int $userId, int $id): void { q('DELETE FROM favorites WHERE id = ? AND user_id = ?', [$id, $userId]); }
+
+// ---- Nachrichten an den Admin --------------------------------------------------
+function send_message(int $userId, string $body): bool
+{
+    $body = trim($body);
+    if ($body === '' || mb_strlen($body) > 4000) return false;
+    // höchstens 10 Nachrichten pro Stunde
+    if ((int)q('SELECT COUNT(*) FROM messages WHERE user_id = ? AND created_at > ?', [$userId, time() - 3600])->fetchColumn() >= 10) return false;
+    q('INSERT INTO messages (user_id, body, created_at) VALUES (?, ?, ?)', [$userId, $body, time()]);
+    return true;
+}
+
+function user_messages(int $userId): array
+{
+    return q('SELECT id, body, status, reply, replied_at, reply_seen, created_at FROM messages WHERE user_id = ? ORDER BY id DESC LIMIT 50', [$userId])->fetchAll();
+}
+
+function unseen_replies(int $userId): int
+{
+    return (int)q('SELECT COUNT(*) FROM messages WHERE user_id = ? AND reply_seen = 0', [$userId])->fetchColumn();
+}
+
+function mark_replies_seen(int $userId): void { q('UPDATE messages SET reply_seen = 1 WHERE user_id = ?', [$userId]); }
+
+function search_option(): array
+{
+    $key = setting('search_engine', 'google');
+    if (!isset(SEARCH_OPTIONS[$key])) $key = 'google';
+    return ['key' => $key, 'name' => SEARCH_OPTIONS[$key][0], 'url' => SEARCH_OPTIONS[$key][1]];
 }
 
 function find_user(string $username): ?array
@@ -340,9 +435,10 @@ function page_start(string $title, string $bodyClass = ''): void
     header('Content-Type: text/html; charset=utf-8');
     header('X-Frame-Options: SAMEORIGIN');
     echo '<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
-       . '<title>' . h($title) . '</title><link rel="stylesheet" href="' . url('style.css') . '"></head><body class="' . h($bodyClass) . '">';
+       . '<title>' . h($title) . '</title><meta name="author" content="Darian">'
+       . '<link rel="icon" href="' . url('assets/favicon-32.png') . '"><link rel="stylesheet" href="' . url('style.css') . '"></head><body class="' . h($bodyClass) . '">';
 }
-function page_end(): void { echo '</body></html>'; }
+function page_end(): void { echo '<script src="' . url('assets/egg.js') . '"></script></body></html>'; }
 
 function ago(int $t): string
 {

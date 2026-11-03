@@ -20,9 +20,10 @@ if ($open && $_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('login.php?registered=1');
     }
 }
-page_start('Registrieren', 'center');
+page_start('SchoolWeb – Registrieren', 'center');
 ?>
 <form class="box" method="post">
+  <img class="box-logo sw-logo" src="<?= h(url('assets/logo.svg')) ?>" alt="SchoolWeb">
   <h1>Konto erstellen</h1>
   <?php if (!$open): ?>
     <p class="msg">Die Registrierung ist im Moment geschlossen. Bitte frage den Administrator nach einem Konto.</p>
@@ -39,4 +40,5 @@ page_start('Registrieren', 'center');
     <p class="muted small">Schon ein Konto? <a href="<?= h(url('login.php')) ?>">Anmelden</a></p>
   <?php endif; ?>
 </form>
+<p class="below"><a href="https://hexa.da-rtx.ch" target="_blank" rel="noopener">hexa.da-rtx.ch</a> · <span class="sig">crafted by D.</span></p>
 <?php page_end();

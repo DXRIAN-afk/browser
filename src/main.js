@@ -39,7 +39,7 @@ async function api(action, { method = 'GET', body, server = auth && auth.server,
     throw err;
   }
   let data;
-  try { data = await res.json(); } catch (e) { throw new Error('Unter dieser Adresse wurde kein Browser-Server gefunden.'); }
+  try { data = await res.json(); } catch (e) { throw new Error('Unter dieser Adresse wurde kein SchoolWeb-Server gefunden.'); }
   if (!res.ok) { const err = new Error(data.error || 'Fehler ' + res.status); err.status = res.status; throw err; }
   return data;
 }
@@ -120,8 +120,9 @@ function createWindow() {
   win = new BrowserWindow({
     width: 1280,
     height: 800,
-    title: 'Browser',
-    backgroundColor: '#1e1f22',
+    title: 'SchoolWeb',
+    icon: path.join(__dirname, '..', 'assets', 'icon-256.png'),
+    backgroundColor: '#0b0c1d',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       webviewTag: true,       // <webview> = eigener Chromium-Tab
@@ -165,6 +166,18 @@ ipcMain.handle('user-info', () => auth && auth.token
   : null);
 
 ipcMain.handle('logout', () => logout());
+
+// Server-Anfragen der Oberfläche (der Zugangsschlüssel bleibt im Hauptprozess)
+const UI_ACTIONS = ['me', 'config', 'favorites', 'favorite_add', 'favorite_rename', 'favorite_remove', 'messages', 'message_send'];
+ipcMain.handle('api', async (_e, action, body) => {
+  if (!UI_ACTIONS.includes(action) || !auth || !auth.token) throw new Error('Nicht erlaubt');
+  try {
+    return await api(action, body ? { method: 'POST', body } : {});
+  } catch (e) {
+    if (e.status === 401) logout('Deine Anmeldung ist abgelaufen oder dein Konto wurde gesperrt.');
+    return { __error: e.message };
+  }
+});
 
 // ---- Tabs (webviews): Sperren, Protokoll, Popups ----------------------------
 app.on('web-contents-created', (_e, contents) => {
