@@ -1,6 +1,5 @@
 node_modules/
 dist/
-ftp-ordner.zip
 src/server.json
 web/data/secret.php
 web/data/db-*
