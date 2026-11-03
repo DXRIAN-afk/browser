@@ -1,11 +1,11 @@
-# Browser
+# SchoolWeb
 
 Ein Browser, den du über deinen Webspace (FTP) anbietest. Zum Benutzen braucht man ein Konto.
 Als Admin siehst du, wer ihn nutzt und was gesucht wird, und kannst Seiten sperren.
 
 | | Windows-Version | Online-Version |
 |---|---|---|
-| Wie | herunterladen und `Browser.exe` starten | direkt im Browser unter `…/online/` |
+| Wie | herunterladen und `SchoolWeb.exe` starten | direkt im Browser unter `…/online/` |
 | Engine | Chromium (wie Edge und Chrome) | Proxy über deinen Server (PHP) |
 | Websites | praktisch alle | einfache Seiten gut, Google/YouTube/Logins oft nicht |
 | Anmeldung, Statistik, Sperren | ja | ja |
@@ -26,7 +26,7 @@ admin/                 Admin-Bereich
 online/                Online-Version (Proxy)
 lib/                   Programmcode und config.php (gesperrt für Besucher)
 data/                  Datenbank (gesperrt für Besucher)
-Browser-Windows.zip    die Windows-Version
+SchoolWeb-Windows.zip  die Windows-Version
 ```
 
 **Voraussetzungen:** PHP 7.4 oder neuer mit den Erweiterungen `pdo_sqlite` (oder `pdo_mysql`) und `curl`. Das haben fast alle Hoster.

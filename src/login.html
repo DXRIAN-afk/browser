@@ -3,14 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'">
-  <title>Browser – Anmelden</title>
+  <title>SchoolWeb – Anmelden</title>
+  <meta name="author" content="Darian">
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="login">
   <form id="form" class="login-box">
-    <div class="logo"></div>
-    <h1>Anmelden</h1>
-    <p class="hint">Um den Browser zu benutzen, melde dich mit deinem Konto an.</p>
+    <img class="login-logo sw-logo" src="../assets/logo.svg" alt="SchoolWeb">
+    <h1>Bei SchoolWeb anmelden</h1>
+    <p class="hint">Um SchoolWeb zu benutzen, melde dich mit deinem Konto an.</p>
     <p id="msg" class="msg" hidden></p>
     <label id="server-field">Server-Adresse
       <input id="server" type="text" spellcheck="false" placeholder="z. B. deine-seite.ch/browser" required>
@@ -21,6 +22,8 @@
     <p class="hint small">Noch kein Konto? <a href="#" id="register">Auf der Website registrieren</a></p>
     <p class="hint small">Besuchte Seiten und Suchanfragen werden mit deinem Benutzernamen gespeichert und sind für den Administrator sichtbar.</p>
   </form>
+  <p class="login-foot">crafted by D.</p>
+  <script src="../assets/egg.js"></script>
   <script src="login.js"></script>
 </body>
 </html>

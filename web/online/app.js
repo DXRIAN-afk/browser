@@ -3,14 +3,21 @@ const API = new URL('../api.php', location.href).href;
 const SEARCH = 'https://html.duckduckgo.com/html/?q=';
 const TOKEN = window.BROWSER.token; // Zugangsschlüssel dieser Anmeldung
 
-// Seitenaufruf an den Server melden (für die Statistik im Admin-Bereich)
-function logVisit(url, title) {
-  fetch(API + '?action=log', {
-    method: 'POST',
+// Anfrage an die Server-Schnittstelle
+async function api(action, body) {
+  const r = await fetch(API + '?action=' + action, {
+    method: body ? 'POST' : 'GET',
     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN, 'X-Browser-Token': TOKEN },
-    body: JSON.stringify({ url, title }),
-  }).then((r) => { if (r.status === 401) location.href = '../login.php'; }).catch(() => {});
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (r.status === 401) { location.href = '../login.php'; throw new Error('401'); }
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || 'Fehler');
+  return data;
 }
+
+// Seitenaufruf an den Server melden (für die Statistik im Admin-Bereich)
+function logVisit(url, title) { api('log', { url, title }).catch(() => {}); }
 // Kurz warten, damit der Seitentitel mitkommt. Wechselt die Seite vorher, wird die alte sofort gemeldet.
 function flushLog(tab) {
   clearTimeout(tab.logTimer);
@@ -117,6 +124,7 @@ function closeTab(tab) {
 
 function updateNav() {
   const t = active;
+  updateStar();
   backBtn.disabled = !(t && t.index > 0);
   fwdBtn.disabled = !(t && t.index < t.history.length - 1);
   reloadBtn.disabled = !(t && t.url);
@@ -189,7 +197,81 @@ $('start-form').addEventListener('submit', (e) => {
   go($('start-input').value);
   $('start-input').value = '';
 });
-document.querySelectorAll('#quick button').forEach((b) => b.addEventListener('click', () => go(b.dataset.url)));
+document.querySelector('#start .hexa').addEventListener('click', (e) => { e.preventDefault(); go(e.currentTarget.dataset.url); });
+
+// ---- Favoriten (werden auf dem Server pro Konto gespeichert) ----
+let favorites = [];
+const favbar = $('favbar'), tilesEl = $('tiles'), starBtn = $('star');
+function favIcon(url) {
+  let host = '';
+  try { host = new URL(url).hostname.replace(/^www\./, ''); } catch (e) {}
+  return (host[0] || '?').toUpperCase();
+}
+function renderFavorites() {
+  favbar.innerHTML = '';
+  tilesEl.innerHTML = '';
+  favbar.hidden = favorites.length === 0;
+  for (const f of favorites) {
+    const chip = document.createElement('div');
+    chip.className = 'fav';
+    chip.title = f.title + '\n' + f.url;
+    chip.innerHTML = '<span class="fi"></span><span class="ft"></span><button class="fx" title="Entfernen">×</button>';
+    chip.querySelector('.fi').textContent = favIcon(f.url);
+    chip.querySelector('.ft').textContent = f.title;
+    chip.addEventListener('click', (e) => {
+      if (e.target.classList.contains('fx')) return;
+      if (e.ctrlKey || e.metaKey || e.button === 1) createTab(f.url); else go(f.url);
+    });
+    chip.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); createTab(f.url); } });
+    chip.querySelector('.fx').addEventListener('click', () => removeFavorite(f.id));
+    chip.addEventListener('dblclick', () => renameFavorite(f));
+    favbar.appendChild(chip);
+
+    const tile = document.createElement('button');
+    tile.className = 'tile';
+    tile.innerHTML = '<span class="ti"></span><span class="tt"></span>';
+    tile.querySelector('.ti').textContent = favIcon(f.url);
+    tile.querySelector('.tt').textContent = f.title;
+    tile.title = f.url;
+    tile.addEventListener('click', () => go(f.url));
+    tilesEl.appendChild(tile);
+  }
+  updateStar();
+}
+function currentFavorite() { return active && active.url ? favorites.find((f) => f.url === active.url) : null; }
+function updateStar() {
+  if (!starBtn) return;
+  const fav = currentFavorite();
+  starBtn.textContent = fav ? '★' : '☆';
+  starBtn.classList.toggle('on', !!fav);
+  starBtn.title = fav ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen';
+  starBtn.disabled = !(active && active.url);
+}
+async function removeFavorite(id) {
+  try { favorites = (await api('favorite_remove', { id })).favorites; renderFavorites(); } catch (e) {}
+}
+async function renameFavorite(f) {
+  const title = prompt('Name für diesen Favoriten:', f.title);
+  if (!title || !title.trim()) return;
+  try { favorites = (await api('favorite_rename', { id: f.id, title })).favorites; renderFavorites(); } catch (e) {}
+}
+starBtn.addEventListener('click', async () => {
+  if (!active || !active.url) return;
+  const fav = currentFavorite();
+  try {
+    if (fav) favorites = (await api('favorite_remove', { id: fav.id })).favorites;
+    else favorites = (await api('favorite_add', { url: active.url, title: active.title })).favorites;
+    renderFavorites();
+  } catch (e) { alert(e.message); }
+});
+api('favorites').then((d) => { favorites = d.favorites; renderFavorites(); }).catch(() => {});
+
+// Neue Antworten vom Admin anzeigen
+function checkReplies() {
+  api('me').then((d) => { $('dot').hidden = !d.unseen_replies; $('dot2').hidden = !d.unseen_replies; }).catch(() => {});
+}
+checkReplies();
+setInterval(checkReplies, 60000);
 
 document.addEventListener('keydown', (e) => {
   const ctrl = e.ctrlKey || e.metaKey;

@@ -19,10 +19,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('admin/');
     }
 }
-page_start('Einrichtung', 'center');
+page_start('SchoolWeb – Einrichtung', 'center');
 ?>
 <form class="box" method="post">
-  <h1>Willkommen!</h1>
+  <img class="box-logo sw-logo" src="<?= h(url('assets/logo.svg')) ?>" alt="SchoolWeb">
+  <h1>Willkommen bei SchoolWeb!</h1>
   <p class="muted">Lege zuerst dein Administrator-Konto an. Damit kannst du später Benutzer, Statistiken und gesperrte Seiten verwalten.</p>
   <?php if ($error): ?><p class="msg error"><?= h($error) ?></p><?php endif; ?>
   <?= csrf_field() ?>
@@ -31,4 +32,5 @@ page_start('Einrichtung', 'center');
   <label>Passwort wiederholen<input name="password2" type="password" required minlength="8" autocomplete="new-password"></label>
   <button class="button">Administrator anlegen</button>
 </form>
+<p class="below"><a href="https://hexa.da-rtx.ch" target="_blank" rel="noopener">hexa.da-rtx.ch</a> · <span class="sig">crafted by D.</span></p>
 <?php page_end();

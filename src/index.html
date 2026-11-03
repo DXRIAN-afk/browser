@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src * data:">
-  <title>Browser</title>
+  <meta name="author" content="Darian">
+  <title>SchoolWeb</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -16,17 +17,50 @@
     <button id="forward" title="Vor (Alt+→)">&#8594;</button>
     <button id="reload" title="Neu laden (F5)">&#8635;</button>
     <button id="home" title="Startseite">&#8962;</button>
-    <input id="url" type="text" spellcheck="false" placeholder="Suchen oder Adresse eingeben">
+    <div id="urlwrap">
+      <input id="url" type="text" spellcheck="false" placeholder="Suchen oder Adresse eingeben">
+      <button id="star" title="Zu Favoriten hinzufügen (Strg+D)">☆</button>
+    </div>
     <div id="account">
-      <button id="account-btn" title="Konto">…</button>
+      <button id="account-btn" title="Konto">…<span id="dot" hidden></span></button>
       <div id="account-menu" hidden>
+        <button id="menu-help">Hilfe / Problem melden<span id="dot2" hidden> · neue Antwort</span></button>
         <button id="menu-admin" hidden>Admin-Bereich</button>
+        <button id="menu-hexa">hexa.da-rtx.ch</button>
         <button id="menu-logout">Abmelden</button>
       </div>
     </div>
   </div>
+  <div id="favbar"></div>
   <div id="progress"></div>
-  <div id="views"></div>
+  <div id="views">
+    <div id="start" class="hidden">
+      <img class="start-logo sw-logo" src="../assets/logo.svg" alt="SchoolWeb" width="120" height="120">
+      <h1>School<span class="grad">Web</span></h1>
+      <form id="start-form">
+        <input id="start-input" type="text" spellcheck="false" autocomplete="off" placeholder="Im Web suchen oder Adresse eingeben">
+      </form>
+      <div id="tiles"></div>
+      <a class="hexa" href="#" data-url="https://hexa.da-rtx.ch"><span class="hexa-icon"></span><span><b>Entdecke Hexa</b><br><span class="muted">hexa.da-rtx.ch</span></span><span class="arrow">→</span></a>
+      <p class="sig">crafted by D.</p>
+    </div>
+  </div>
+
+  <div id="help" class="modal" hidden>
+    <div class="dialog">
+      <button class="dclose" id="help-close" title="Schließen">×</button>
+      <h2>Hilfe &amp; Probleme melden</h2>
+      <p class="muted">Etwas funktioniert nicht oder eine Seite ist falsch gesperrt? Schreib dem Admin, die Antwort erscheint hier.</p>
+      <form id="help-form">
+        <textarea id="help-text" maxlength="4000" required placeholder="Beschreibe kurz das Problem, z. B. welche Seite nicht geht"></textarea>
+        <label class="check"><input type="checkbox" id="help-url" checked> Aktuelle Adresse mitschicken</label>
+        <p id="help-msg" class="msg" hidden></p>
+        <button type="submit" class="primary" id="help-send">Senden</button>
+      </form>
+      <ul id="help-list" class="thread"></ul>
+    </div>
+  </div>
+  <script src="../assets/egg.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>
