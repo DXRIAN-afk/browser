@@ -46,6 +46,7 @@ $config = json_encode([
     </div>
   </div>
   <div id="favbar"></div>
+  <div id="banners"></div>
   <div id="progress"></div>
   <div id="views">
     <div id="start">

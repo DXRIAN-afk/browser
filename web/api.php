@@ -13,6 +13,8 @@
  *   POST api.php?action=favorite_remove {id}
  *   GET  api.php?action=messages                              → eigene Nachrichten + Antworten
  *   POST api.php?action=message_send    {body}
+ *   GET  api.php?action=announcements                         → {announcements: [...]}
+ *   GET  api.php?action=history&q=...                         → eigener Verlauf
  * Anmeldung über den Header  "Authorization: Bearer <token>".
  */
 require __DIR__ . '/lib/app.php';
@@ -115,6 +117,14 @@ switch ($action) {
         $client = $u['token_client'] === 'web' ? 'online' : 'app';
         log_visit($u, (string)($in['url'] ?? ''), (string)($in['title'] ?? ''), $client);
         out(['ok' => true]);
+
+    case 'announcements':
+        auth();
+        out(['announcements' => active_announcements()]);
+
+    case 'history':
+        $u = auth();
+        out(['history' => user_history((int)$u['id'], trim((string)($_GET['q'] ?? '')))]);
 
     case 'info':
         out(['name' => APP_NAME, 'registration_open' => setting('registration_open', '1') === '1']);

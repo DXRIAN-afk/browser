@@ -278,10 +278,102 @@ $('help-form').addEventListener('submit', async (e) => {
   $('help-send').disabled = false;
 });
 
+// ---- Verlauf (Strg+H): vom Server, also auf jedem Gerät gleich ----
+const historyEl = $('history');
+let historyTimer = null;
+function dayLabel(d) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const diff = Math.round((today - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000);
+  if (diff === 0) return 'Heute';
+  if (diff === 1) return 'Gestern';
+  return d.toLocaleDateString('de-CH', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+async function loadHistory() {
+  const list = $('history-list');
+  try {
+    const q = $('history-q').value.trim();
+    const items = (await api('history', { q })).history;
+    if (!items.length) { list.innerHTML = `<p class="empty">${q ? 'Nichts gefunden.' : 'Noch kein Verlauf.'}</p>`; return; }
+    let html = '', last = '';
+    for (const h of items) {
+      const d = new Date(h.created_at * 1000), label = dayLabel(d);
+      if (label !== last) { html += `<h3>${esc(label)}</h3>`; last = label; }
+      html += `<button class="hitem" data-url="${esc(h.url)}" title="${esc(h.url)}"><span class="htime">${d.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })}</span>
+        <span class="fi">${esc(favLetter(h.url))}</span><span class="htitle">${esc(h.title || h.url)}</span><span class="hdomain">${esc(h.domain)}</span></button>`;
+    }
+    list.innerHTML = html;
+  } catch (e) { list.innerHTML = `<p class="empty">${esc(e.message)}</p>`; }
+}
+function openHistory() { historyEl.hidden = false; $('history-q').value = ''; $('history-q').focus(); loadHistory(); }
+$('history-q').addEventListener('input', () => { clearTimeout(historyTimer); historyTimer = setTimeout(loadHistory, 250); });
+$('history-list').addEventListener('click', (e) => {
+  const b = e.target.closest('.hitem');
+  if (!b) return;
+  historyEl.hidden = true;
+  if (e.ctrlKey || e.metaKey) createTab(b.dataset.url); else navigate(b.dataset.url);
+});
+$('history-close').addEventListener('click', () => { historyEl.hidden = true; });
+historyEl.addEventListener('click', (e) => { if (e.target === historyEl) historyEl.hidden = true; });
+
+// ---- Downloads ----
+const dlBar = $('downloads'), dlList = $('dl-list');
+const dlItems = new Map();
+function fmtBytes(n) { return n > 1e9 ? (n / 1e9).toFixed(1) + ' GB' : n > 1e6 ? (n / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1e3)) + ' KB'; }
+window.browserApi.onDownload((d) => {
+  let el = dlItems.get(d.id);
+  if (d.type === 'start') {
+    el = document.createElement('div');
+    el.className = 'dl';
+    el.innerHTML = '<span class="dicon">⤓</span><span class="dinfo"><span class="dname"></span><span class="dstate">Startet …</span><span class="dprog"><span></span></span></span><button class="dbtn" title="Abbrechen">×</button>';
+    el.querySelector('.dname').textContent = d.name;
+    el.querySelector('.dbtn').addEventListener('click', (e) => { e.stopPropagation(); window.browserApi.downloadAction(d.id, el.classList.contains('done') ? 'folder' : 'cancel'); });
+    el.addEventListener('click', () => { if (el.classList.contains('done')) window.browserApi.downloadAction(d.id, 'open'); });
+    dlList.prepend(el);
+    dlItems.set(d.id, el);
+    dlBar.hidden = false;
+  } else if (el && d.type === 'progress') {
+    const pct = d.total ? Math.round(d.received / d.total * 100) : 0;
+    el.querySelector('.dprog span').style.width = (d.total ? pct : 30) + '%';
+    el.querySelector('.dstate').textContent = d.total ? `${fmtBytes(d.received)} von ${fmtBytes(d.total)} · ${pct} %` : fmtBytes(d.received);
+  } else if (el && d.type === 'done') {
+    const ok = d.state === 'completed';
+    el.classList.add(ok ? 'done' : 'failed');
+    el.querySelector('.dstate').textContent = ok ? 'Fertig · klicken zum Öffnen' : d.state === 'cancelled' ? 'Abgebrochen' : 'Fehlgeschlagen';
+    el.querySelector('.dicon').textContent = ok ? '✓' : '!';
+    const btn = el.querySelector('.dbtn');
+    if (ok) { btn.textContent = '📁'; btn.title = 'Im Ordner zeigen'; } else btn.remove();
+  }
+});
+$('dl-close').addEventListener('click', () => { dlBar.hidden = true; });
+
+// ---- Ankündigungen vom Admin ----
+function dismissed() { try { return JSON.parse(localStorage.getItem('sw-dismissed') || '[]'); } catch (e) { return []; } }
+function renderBanners(list) {
+  const gone = dismissed(), box = $('banners');
+  box.innerHTML = '';
+  for (const a of list.filter((x) => !gone.includes(x.id))) {
+    const el = document.createElement('div');
+    el.className = 'banner ' + (a.level || 'info');
+    el.innerHTML = '<span class="bi"></span><span class="bt"></span><button class="bx" title="Ausblenden">×</button>';
+    el.querySelector('.bi').textContent = a.level === 'warning' ? '⚠' : a.level === 'success' ? '✓' : 'ℹ';
+    el.querySelector('.bt').textContent = a.body;
+    el.querySelector('.bx').addEventListener('click', () => {
+      try { localStorage.setItem('sw-dismissed', JSON.stringify(dismissed().concat(a.id).slice(-100))); } catch (e) {}
+      el.remove();
+    });
+    box.appendChild(el);
+  }
+}
+function loadBanners() { api('announcements').then((d) => renderBanners(d.announcements || [])).catch(() => {}); }
+loadBanners();
+setInterval(loadBanners, 60000);
+
 // ---- Tastenkürzel (gelten, solange der Fokus in der Oberfläche liegt) ----
 document.addEventListener('keydown', (e) => {
   const ctrl = e.ctrlKey || e.metaKey;
-  if (e.key === 'Escape' && !help.hidden) help.hidden = true;
+  if (e.key === 'Escape' && (!help.hidden || !historyEl.hidden)) { help.hidden = true; historyEl.hidden = true; }
+  else if (ctrl && e.key === 'h') { e.preventDefault(); openHistory(); }
+  else if (ctrl && e.key === 'j') { e.preventDefault(); dlBar.hidden = !dlBar.hidden || !dlList.children.length; }
   else if (ctrl && e.key === 't') { e.preventDefault(); createTab(); }
   else if (ctrl && e.key === 'w') { e.preventDefault(); closeTab(active); }
   else if (ctrl && e.key === 'l') { e.preventDefault(); urlEl.focus(); }
@@ -308,6 +400,13 @@ window.browserApi.userInfo().then((u) => {
 accountBtn.addEventListener('click', (e) => { e.stopPropagation(); accountMenu.hidden = !accountMenu.hidden; });
 document.addEventListener('click', () => { accountMenu.hidden = true; });
 $('menu-help').addEventListener('click', openHelp);
+$('menu-history').addEventListener('click', openHistory);
+$('menu-downloads').addEventListener('click', () => { if (dlList.children.length) dlBar.hidden = false; else alertDownloads(); });
+function alertDownloads() {
+  dlList.innerHTML = '<div class="dl empty">Noch keine Downloads in dieser Sitzung. Dateien landen im Ordner „Downloads“.</div>';
+  dlBar.hidden = false;
+  setTimeout(() => { if (dlList.querySelector('.empty')) { dlList.innerHTML = ''; dlBar.hidden = true; } }, 3500);
+}
 $('menu-hexa').addEventListener('click', () => createTab('https://hexa.da-rtx.ch'));
 $('menu-logout').addEventListener('click', () => window.browserApi.logout());
 

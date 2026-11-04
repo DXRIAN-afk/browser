@@ -1,6 +1,6 @@
 {
   "name": "browser",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "SchoolWeb – Browser auf Chromium-Basis mit Konten, Favoriten und Admin-Bereich",
   "main": "src/main.js",
   "scripts": {

@@ -5,10 +5,7 @@ $me = require_admin();
 
 function flash(string $msg, string $type = 'ok'): void { $_SESSION['flash'] = [$msg, $type]; }
 function back(string $query = ''): void { redirect('admin/' . ($query !== '' ? '?' . $query : '')); }
-function day_expr(): string
-{
-    return is_mysql() ? "FROM_UNIXTIME(created_at, '%Y-%m-%d')" : "strftime('%Y-%m-%d', created_at, 'unixepoch', 'localtime')";
-}
+function day_expr(): string { return time_expr('day'); }
 function since(int $days): int { return $days > 0 ? strtotime('today') - ($days - 1) * 86400 : 0; }
 function n($v): string { return number_format((int)$v, 0, '.', "'"); }
 
@@ -86,6 +83,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($a === 'msg_open') { q("UPDATE messages SET status = 'open' WHERE id = ?", [$id]); flash('Wieder offen.'); back('page=messages&show=all'); }
     if ($a === 'msg_delete') { q('DELETE FROM messages WHERE id = ?', [$id]); flash('Nachricht gelöscht.'); back('page=messages&show=all'); }
 
+    // Ankündigungen
+    if ($a === 'ann_create') {
+        $body = trim((string)($_POST['body'] ?? ''));
+        $level = (string)($_POST['level'] ?? 'info');
+        $days = (int)($_POST['days'] ?? 0);
+        if ($body === '') flash('Bitte einen Text eingeben.', 'error');
+        else {
+            q('INSERT INTO announcements (body, level, active, expires_at, created_at) VALUES (?, ?, 1, ?, ?)',
+              [mb_substr($body, 0, 1000), isset(ANNOUNCEMENT_LEVELS[$level]) ? $level : 'info', $days > 0 ? time() + $days * 86400 : 0, time()]);
+            flash('Ankündigung veröffentlicht. Alle sehen sie beim nächsten Öffnen oder spätestens nach einer Minute.');
+        }
+        back('page=announcements');
+    }
+    if ($a === 'ann_toggle') { q('UPDATE announcements SET active = 1 - active WHERE id = ?', [$id]); flash('Gespeichert.'); back('page=announcements'); }
+    if ($a === 'ann_delete') { q('DELETE FROM announcements WHERE id = ?', [$id]); flash('Ankündigung gelöscht.'); back('page=announcements'); }
+
     if ($a === 'settings') {
         $engine = (string)($_POST['search_engine'] ?? 'google');
         if (isset(SEARCH_OPTIONS[$engine])) set_setting('search_engine', $engine);
@@ -114,7 +127,7 @@ $flash = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
 
 $openMessages = (int)q("SELECT COUNT(*) FROM messages WHERE status = 'open'")->fetchColumn();
-$nav = ['dashboard' => 'Übersicht', 'messages' => 'Nachrichten', 'searches' => 'Suchanfragen', 'history' => 'Verlauf', 'users' => 'Benutzer', 'blocked' => 'Gesperrte Seiten', 'settings' => 'Einstellungen'];
+$nav = ['dashboard' => 'Übersicht', 'messages' => 'Nachrichten', 'announcements' => 'Ankündigungen', 'searches' => 'Suchanfragen', 'history' => 'Verlauf', 'users' => 'Benutzer', 'blocked' => 'Gesperrte Seiten', 'settings' => 'Einstellungen'];
 $current = $page === 'user' ? 'users' : $page;
 
 header('Content-Type: text/html; charset=utf-8');
@@ -134,6 +147,7 @@ header('X-Frame-Options: DENY');
 <header class="bar">
   <a class="brand" href="./"><img class="sw-logo" src="../assets/logo.svg" alt="" width="30" height="30"><span>School<b>Web</b></span> <span class="muted">Admin</span></a>
   <nav><?php foreach ($nav as $k => $label): ?><a href="?page=<?= $k ?>" class="<?= $current === $k ? 'active' : '' ?>"><?= $label ?><?php if ($k === 'messages' && $openMessages): ?> <span class="badge"><?= $openMessages ?></span><?php endif; ?></a><?php endforeach; ?></nav>
+  <form class="gsearch" method="get"><input type="hidden" name="page" value="search"><input type="search" name="q" value="<?= h($page === 'search' ? ($_GET['q'] ?? '') : '') ?>" placeholder="Alles durchsuchen …" aria-label="Alles durchsuchen"></form>
   <div class="me"><span class="muted"><?= h($me['username']) ?></span> <a href="../online/">Online-Browser</a> <a href="../logout.php">Abmelden</a></div>
 </header>
 <main>
@@ -215,6 +229,37 @@ if ($page === 'dashboard'):
       <?php foreach (array_reverse($series, true) as $d => $c): ?><tr><td><?= date('d.m.Y', strtotime($d)) ?></td><td class="r"><?= n($c) ?></td></tr><?php endforeach; ?></table></details>
   </section>
 
+  <?php
+    $from = since($range);
+    $hours = array_fill(0, 24, 0);
+    foreach (q('SELECT ' . time_expr('hour') . ' AS hr, COUNT(*) AS c FROM visits WHERE created_at >= ? GROUP BY hr', [$from])->fetchAll() as $r) $hours[(int)$r['hr']] = (int)$r['c'];
+    $wdNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+    $week = array_fill(0, 7, 0);
+    foreach (q('SELECT ' . time_expr('weekday') . ' AS wd, COUNT(*) AS c FROM visits WHERE created_at >= ? GROUP BY wd', [$from])->fetchAll() as $r) $week[((int)$r['wd'] + 6) % 7] = (int)$r['c'];
+    $col = function (array $vals, callable $label, callable $tip, int $every = 1) {
+        $max = max($vals) ?: 1;
+        echo '<div class="cols short">';
+        foreach ($vals as $i => $c) {
+            echo '<div class="col" tabindex="0"><div class="cbar" style="height:' . ($c ? max(2, round($c / $max * 100, 1)) : 0) . '%"></div>'
+               . '<div class="tip"><b>' . n($c) . '</b> Aufrufe<br>' . h($tip($i)) . '</div>'
+               . '<div class="cl">' . ($i % $every === 0 ? h($label($i)) : '') . '</div></div>';
+        }
+        echo '</div>';
+    };
+  ?>
+  <div class="grid2">
+    <section class="panel">
+      <h2>Wann wird gesurft? <span class="muted">· nach Uhrzeit</span></h2>
+      <?php $col($hours, fn($i) => sprintf('%02d', $i), fn($i) => sprintf('%02d:00–%02d:59 Uhr', $i, $i), 3); ?>
+      <?php $peak = array_search(max($hours), $hours); if (max($hours)): ?><p class="more muted">Am meisten los: <b><?= sprintf('%02d–%02d Uhr', $peak, $peak + 1) ?></b></p><?php endif; ?>
+    </section>
+    <section class="panel">
+      <h2>An welchen Tagen? <span class="muted">· nach Wochentag</span></h2>
+      <?php $col($week, fn($i) => $wdNames[$i], fn($i) => $wdNames[$i]); ?>
+      <?php $wpeak = array_search(max($week), $week); if (max($week)): ?><p class="more muted">Aktivster Tag: <b><?= $wdNames[$wpeak] ?></b></p><?php endif; ?>
+    </section>
+  </div>
+
   <div class="grid2">
     <section class="panel">
       <h2>Häufigste Suchbegriffe</h2>
@@ -240,6 +285,7 @@ if ($page === 'dashboard'):
 ?>
   <div class="head"><h1>Suchanfragen</h1>
     <div class="headr"><?php range_tabs('searches', $range, $ranges); ?>
+      <a class="btn" href="export.php?type=searches&range=<?= $range ?>">⤓ CSV</a>
       <form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="clear_searches">
         <button class="btn danger" onclick="return confirm('Den gesamten Suchverlauf aller Benutzer löschen?')">Ganzen Suchverlauf löschen</button></form></div></div>
   <div class="grid2">
@@ -281,7 +327,8 @@ if ($page === 'dashboard'):
     $rows = q("SELECT v.*, u.username FROM visits v LEFT JOIN users u ON u.id = v.user_id $w ORDER BY v.id DESC LIMIT $per OFFSET " . (($p - 1) * $per), $args)->fetchAll();
     $users = q('SELECT id, username FROM users ORDER BY username')->fetchAll();
 ?>
-  <div class="head"><h1>Verlauf</h1><span class="muted"><?= n($total) ?> Einträge</span></div>
+  <div class="head"><h1>Verlauf</h1><div class="headr"><span class="muted"><?= n($total) ?> Einträge</span>
+    <a class="btn" href="export.php?<?= h(http_build_query(['type' => 'history', 'user' => $uid, 'q' => $text])) ?>">⤓ Als CSV exportieren</a></div></div>
   <form class="filters" method="get">
     <input type="hidden" name="page" value="history">
     <select name="user" onchange="this.form.submit()"><option value="0">Alle Benutzer</option>
@@ -312,7 +359,7 @@ if ($page === 'dashboard'):
                        (SELECT COUNT(*) FROM searches s WHERE s.user_id = u.id) AS searches
                 FROM users u ORDER BY u.last_seen DESC, u.username')->fetchAll();
 ?>
-  <div class="head"><h1>Benutzer</h1><span class="muted"><?= count($users) ?> Konten</span></div>
+  <div class="head"><h1>Benutzer</h1><div class="headr"><span class="muted"><?= count($users) ?> Konten</span><a class="btn" href="export.php?type=users">⤓ Als CSV exportieren</a></div></div>
   <section class="panel flush">
     <table class="t"><tr><th>Benutzer</th><th>Registriert</th><th>Zuletzt aktiv</th><th class="r">Aufrufe</th><th class="r">Suchen</th><th>Status</th></tr>
       <?php foreach ($users as $u): ?><tr class="rowlink" onclick="location='?page=user&id=<?= (int)$u['id'] ?>'">
@@ -412,6 +459,67 @@ if ($page === 'dashboard'):
       </form>
     </section>
   <?php endforeach; ?>
+
+<?php elseif ($page === 'announcements'):
+    $rows = q('SELECT * FROM announcements ORDER BY id DESC LIMIT 100')->fetchAll();
+?>
+  <div class="head"><h1>Ankündigungen</h1></div>
+  <section class="panel narrow">
+    <h2>Neue Ankündigung</h2>
+    <p class="muted small">Erscheint bei allen Benutzern als Banner oben in der App und in der Online-Version. Jede Person kann sie wegklicken.</p>
+    <form method="post" class="form"><?= csrf_field() ?><input type="hidden" name="action" value="ann_create">
+      <label>Text<textarea name="body" rows="3" required maxlength="1000" placeholder="z. B. Am Freitag ist SchoolWeb wegen Wartung kurz offline."></textarea></label>
+      <div class="form row">
+        <select name="level" aria-label="Art"><?php foreach (ANNOUNCEMENT_LEVELS as $k => $l): ?><option value="<?= $k ?>"><?= $l ?></option><?php endforeach; ?></select>
+        <select name="days" aria-label="Dauer"><option value="0">bis ich sie ausschalte</option><option value="1">1 Tag</option><option value="3">3 Tage</option><option value="7">1 Woche</option><option value="30">1 Monat</option></select>
+        <button class="btn primary">Veröffentlichen</button>
+      </div>
+    </form>
+  </section>
+  <?php if (!$rows): ?><section class="panel"><p class="empty">Noch keine Ankündigungen.</p></section><?php endif; ?>
+  <?php foreach ($rows as $r): $live = $r['active'] && (!$r['expires_at'] || $r['expires_at'] > time()); ?>
+    <section class="panel ann ann-<?= h($r['level']) ?> <?= $live ? '' : 'off' ?>">
+      <div class="mhead"><span class="tag <?= $r['level'] === 'warning' ? 'red' : ($r['level'] === 'success' ? 'green' : 'blue') ?>"><?= h(ANNOUNCEMENT_LEVELS[$r['level']] ?? 'Info') ?></span>
+        <span class="muted"><?= date('d.m.Y H:i', $r['created_at']) ?><?= $r['expires_at'] ? ' · bis ' . date('d.m.Y H:i', $r['expires_at']) : '' ?></span>
+        <?= $live ? '<span class="tag green">sichtbar</span>' : '<span class="tag">nicht sichtbar</span>' ?></div>
+      <div class="mbody"><?= h($r['body']) ?></div>
+      <div class="actions" style="margin:12px 0 0">
+        <form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="ann_toggle"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><button class="btn"><?= $r['active'] ? 'Ausschalten' : 'Wieder einschalten' ?></button></form>
+        <?= del_button('ann_delete', ['id' => $r['id']], 'Löschen', 'Ankündigung löschen?') ?>
+      </div>
+    </section>
+  <?php endforeach; ?>
+
+<?php elseif ($page === 'search'):
+    $text = trim((string)($_GET['q'] ?? ''));
+    $like = '%' . $text . '%';
+    $found = $text === '' ? null : [
+        'users' => q('SELECT id, username, last_seen, is_blocked FROM users WHERE username LIKE ? ORDER BY username LIMIT 20', [$like])->fetchAll(),
+        'searches' => q('SELECT s.*, u.username FROM searches s LEFT JOIN users u ON u.id = s.user_id WHERE s.query LIKE ? ORDER BY s.id DESC LIMIT 30', [$like])->fetchAll(),
+        'visits' => q('SELECT v.*, u.username FROM visits v LEFT JOIN users u ON u.id = v.user_id WHERE v.url LIKE ? OR v.title LIKE ? ORDER BY v.id DESC LIMIT 30', [$like, $like])->fetchAll(),
+        'messages' => q('SELECT m.*, u.username FROM messages m LEFT JOIN users u ON u.id = m.user_id WHERE m.body LIKE ? OR m.reply LIKE ? ORDER BY m.id DESC LIMIT 20', [$like, $like])->fetchAll(),
+        'blocked' => q('SELECT * FROM blocked WHERE domain LIKE ? OR note LIKE ? ORDER BY domain LIMIT 20', [$like, $like])->fetchAll(),
+    ];
+?>
+  <div class="head"><h1>Suche</h1></div>
+  <form class="filters" method="get"><input type="hidden" name="page" value="search">
+    <input type="search" name="q" value="<?= h($text) ?>" placeholder="Benutzer, Suchbegriff, Website, Nachricht …" autofocus>
+    <button class="btn primary">Suchen</button></form>
+  <?php if ($found === null): ?><section class="panel"><p class="empty">Gib oben einen Begriff ein. Gesucht wird in Benutzern, Suchanfragen, Verlauf, Nachrichten und gesperrten Seiten.</p></section>
+  <?php elseif (!array_filter($found)): ?><section class="panel"><p class="empty">Nichts gefunden für „<?= h($text) ?>“.</p></section>
+  <?php else: ?>
+    <?php if ($found['users']): ?><section class="panel"><h2>Benutzer (<?= count($found['users']) ?>)</h2><table class="t small">
+      <?php foreach ($found['users'] as $u): ?><tr><td><a href="?page=user&id=<?= (int)$u['id'] ?>"><b><?= h($u['username']) ?></b></a></td><td class="muted">zuletzt aktiv: <?= ago((int)$u['last_seen']) ?></td><td><?= $u['is_blocked'] ? '<span class="tag red">gesperrt</span>' : '' ?></td></tr><?php endforeach; ?></table></section><?php endif; ?>
+    <?php if ($found['searches']): ?><section class="panel"><h2>Suchanfragen (<?= count($found['searches']) ?>)</h2><table class="t small">
+      <?php foreach ($found['searches'] as $r): ?><tr><td class="nowrap muted"><?= date('d.m.Y H:i', $r['created_at']) ?></td><td><a href="?page=user&id=<?= (int)$r['user_id'] ?>"><?= h($r['username'] ?? '–') ?></a></td><td><?= h($r['query']) ?> <span class="muted">· <?= h($r['engine']) ?></span></td></tr><?php endforeach; ?></table></section><?php endif; ?>
+    <?php if ($found['visits']): ?><section class="panel"><h2>Verlauf (<?= count($found['visits']) ?>) <a class="small" href="?page=history&q=<?= urlencode($text) ?>">Alle →</a></h2><table class="t small">
+      <?php foreach ($found['visits'] as $r): ?><tr><td class="nowrap muted"><?= date('d.m.Y H:i', $r['created_at']) ?></td><td><a href="?page=user&id=<?= (int)$r['user_id'] ?>"><?= h($r['username'] ?? '–') ?></a></td>
+        <td class="page"><div class="pt"><?= h($r['title'] ?: '(ohne Titel)') ?></div><a class="pu" href="<?= h($r['url']) ?>" target="_blank" rel="noopener noreferrer"><?= h($r['url']) ?></a></td></tr><?php endforeach; ?></table></section><?php endif; ?>
+    <?php if ($found['messages']): ?><section class="panel"><h2>Nachrichten (<?= count($found['messages']) ?>) <a class="small" href="?page=messages&show=all">Alle →</a></h2><table class="t small">
+      <?php foreach ($found['messages'] as $r): ?><tr><td class="nowrap muted"><?= date('d.m.Y H:i', $r['created_at']) ?></td><td><?= h($r['username'] ?? '–') ?></td><td><?= h(mb_strimwidth($r['body'], 0, 160, '…')) ?></td></tr><?php endforeach; ?></table></section><?php endif; ?>
+    <?php if ($found['blocked']): ?><section class="panel"><h2>Gesperrte Seiten (<?= count($found['blocked']) ?>)</h2><table class="t small">
+      <?php foreach ($found['blocked'] as $r): ?><tr><td><b><?= h($r['domain']) ?></b></td><td class="muted"><?= h($r['note']) ?></td></tr><?php endforeach; ?></table></section><?php endif; ?>
+  <?php endif; ?>
 
 <?php elseif ($page === 'blocked'):
     $rows = q('SELECT * FROM blocked ORDER BY domain')->fetchAll();
