@@ -266,6 +266,29 @@ starBtn.addEventListener('click', async () => {
 });
 api('favorites').then((d) => { favorites = d.favorites; renderFavorites(); }).catch(() => {});
 
+// ---- Ankündigungen vom Admin (weggeklickte merkt sich der Browser) ----
+function dismissed() { try { return JSON.parse(localStorage.getItem('sw-dismissed') || '[]'); } catch (e) { return []; } }
+function renderBanners(list) {
+  const gone = dismissed();
+  const box = $('banners');
+  box.innerHTML = '';
+  for (const a of list.filter((x) => !gone.includes(x.id))) {
+    const el = document.createElement('div');
+    el.className = 'banner ' + (a.level || 'info');
+    el.innerHTML = '<span class="bi"></span><span class="bt"></span><button class="bx" title="Ausblenden">×</button>';
+    el.querySelector('.bi').textContent = a.level === 'warning' ? '⚠' : a.level === 'success' ? '✓' : 'ℹ';
+    el.querySelector('.bt').textContent = a.body;
+    el.querySelector('.bx').addEventListener('click', () => {
+      try { localStorage.setItem('sw-dismissed', JSON.stringify(dismissed().concat(a.id).slice(-100))); } catch (e) {}
+      el.remove();
+    });
+    box.appendChild(el);
+  }
+}
+function loadBanners() { api('announcements').then((d) => renderBanners(d.announcements || [])).catch(() => {}); }
+loadBanners();
+setInterval(loadBanners, 60000);
+
 // Neue Antworten vom Admin anzeigen
 function checkReplies() {
   api('me').then((d) => { $('dot').hidden = !d.unseen_replies; $('dot2').hidden = !d.unseen_replies; }).catch(() => {});

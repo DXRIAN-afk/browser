@@ -43,6 +43,7 @@ function db(): PDO
     if ($pdo) return $pdo;
     if (DB_DSN !== '') {
         $pdo = new PDO(DB_DSN, DB_USER, DB_PASS);
+        $pdo->exec("SET time_zone = '+00:00'"); // Zeiten werden in PHP umgerechnet
     } else {
         $dir = dirname(__DIR__) . '/data';
         // Zufälliger Dateiname, damit niemand die Datenbank erraten und herunterladen kann
@@ -95,12 +96,15 @@ function migrate(PDO $pdo): void
             id $id, user_id INT NOT NULL, body $long NOT NULL, status $txt NOT NULL DEFAULT 'open',
             reply $long, replied_at INT NOT NULL DEFAULT 0, reply_seen INT NOT NULL DEFAULT 1,
             created_at INT NOT NULL)$end",
+        "CREATE TABLE IF NOT EXISTS announcements (
+            id $id, body $long NOT NULL, level $txt NOT NULL DEFAULT 'info', active INT NOT NULL DEFAULT 1,
+            expires_at INT NOT NULL DEFAULT 0, created_at INT NOT NULL)$end",
     ];
     // Nur einmal pro Version ausführen
     $v = false;
     try {
         $v = $pdo->query("SELECT value FROM settings WHERE name = 'schema'")->fetchColumn();
-        if ($v === '2') return;
+        if ($v === '3') return;
     } catch (Throwable $e) {}
     foreach ($tables as $sql) $pdo->exec($sql);
     foreach ([
@@ -116,7 +120,7 @@ function migrate(PDO $pdo): void
         foreach ($pdo->query('SELECT id FROM users')->fetchAll(PDO::FETCH_COLUMN) as $uid) seed_favorites($pdo, (int)$uid);
     }
     $pdo->exec("DELETE FROM settings WHERE name = 'schema'");
-    $pdo->exec("INSERT INTO settings (name, value) VALUES ('schema', '2')");
+    $pdo->exec("INSERT INTO settings (name, value) VALUES ('schema', '3')");
 }
 
 function q(string $sql, array $params = []): PDOStatement
@@ -206,6 +210,35 @@ function unseen_replies(int $userId): int
 }
 
 function mark_replies_seen(int $userId): void { q('UPDATE messages SET reply_seen = 1 WHERE user_id = ?', [$userId]); }
+
+// ---- Ankündigungen vom Admin ------------------------------------------------
+const ANNOUNCEMENT_LEVELS = ['info' => 'Info', 'warning' => 'Wichtig', 'success' => 'Gute Nachricht'];
+
+function active_announcements(): array
+{
+    return q('SELECT id, body, level, created_at FROM announcements WHERE active = 1 AND (expires_at = 0 OR expires_at > ?) ORDER BY id DESC LIMIT 5', [time()])->fetchAll();
+}
+
+// ---- Eigener Verlauf (für App und Online-Version) -----------------------------
+function user_history(int $userId, string $text = '', int $limit = 200): array
+{
+    $args = [$userId];
+    $where = 'user_id = ?';
+    if ($text !== '') { $where .= ' AND (url LIKE ? OR title LIKE ?)'; $args[] = "%$text%"; $args[] = "%$text%"; }
+    return q("SELECT id, url, title, domain, created_at FROM visits WHERE $where ORDER BY id DESC LIMIT " . max(1, min(500, $limit)), $args)->fetchAll();
+}
+
+/** SQL-Ausdruck für Stunde/Tag in Schweizer Zeit (gleich für SQLite und MySQL) */
+function time_expr(string $format): string
+{
+    $offset = (int)date('Z');
+    if (is_mysql()) {
+        $f = ['hour' => '%H', 'day' => '%Y-%m-%d', 'weekday' => '%w'][$format];
+        return $format === 'weekday' ? "(DAYOFWEEK(FROM_UNIXTIME(created_at + $offset)) - 1)" : "FROM_UNIXTIME(created_at + $offset, '$f')";
+    }
+    $f = ['hour' => '%H', 'day' => '%Y-%m-%d', 'weekday' => '%w'][$format];
+    return "strftime('$f', created_at + $offset, 'unixepoch')";
+}
 
 function search_option(): array
 {

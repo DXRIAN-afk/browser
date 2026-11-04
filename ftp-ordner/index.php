@@ -30,13 +30,13 @@ page_start('SchoolWeb – Download', 'home');
     <section class="card primary">
       <span class="badge">Empfohlen</span>
       <h2>Windows</h2>
-      <p>Version 0.2.0 · ZIP · 97 MB<br>Startet am schnellsten. Zum Entpacken und Behalten auf dem PC.</p>
+      <p>Version 0.3.0 · ZIP · 97 MB<br>Startet am schnellsten. Zum Entpacken und Behalten auf dem PC.</p>
       <a class="button" href="SchoolWeb-Windows.zip" download>ZIP herunterladen</a>
     </section>
 
     <section class="card">
       <h2>Portable</h2>
-      <p>Version 0.2.0 · eine .exe · 65 MB<br>Ohne Entpacken und ohne Installation, läuft auch vom USB-Stick.</p>
+      <p>Version 0.3.0 · eine .exe · 65 MB<br>Ohne Entpacken und ohne Installation, läuft auch vom USB-Stick.</p>
       <a class="button secondary" href="SchoolWeb-Portable.exe" download>Portable herunterladen</a>
     </section>
 
