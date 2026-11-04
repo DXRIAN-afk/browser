@@ -60,9 +60,16 @@ Die Tabellen werden beim ersten Aufruf automatisch erstellt.
   Admin-Rechte, überall abmelden, Passwort ändern, löschen. Neue Konten anlegen.
 - **Gesperrte Seiten:** Domains sperren und entsperren. `example.com` sperrt auch alle Subdomains.
   Gilt sofort in der Online-Version und innerhalb einer Minute in der App.
+- **Nachrichten:** Benutzer schreiben dir über „Hilfe“, du antwortest direkt.
+- **Ankündigungen:** Banner für alle Benutzer in App und Online-Version, mit Ablaufdatum.
+- **Suche über alles** oben im Kopf, **CSV-Export** für Verlauf, Suchanfragen und Benutzer (öffnet in Excel),
+  Diagramme nach Uhrzeit und Wochentag.
 - **Einstellungen:** Registrierung offen oder geschlossen, Verlauf automatisch löschen nach X Tagen, Verlauf löschen.
 
 ## Windows-App
+
+- Eigene Startseite, Favoritenleiste (Stern oder Strg+D), Verlauf (Strg+H), Downloads mit Fortschritt (Strg+J),
+  „Hilfe / Problem melden“ im Konto-Menü.
 
 Beim ersten Start fragt die App nach **Server-Adresse**, Benutzername und Passwort. Die Server-Adresse steht auf der
 Startseite und im Admin-Bereich unter „Einstellungen“ (z. B. `https://deine-seite.ch/browser`).

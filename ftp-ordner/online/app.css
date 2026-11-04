@@ -105,3 +105,14 @@ button:disabled { color: #ffffff3a; background: none; cursor: default; }
   .tab { width: 140px; }
   #account-btn { max-width: 90px; }
 }
+
+/* Ankündigungen */
+#banners:empty { display: none; }
+.banner { display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 14px; font-size: 13.5px; color: var(--text);
+  background: linear-gradient(90deg, #22d3ee26, #8b5cf626); border-bottom: 1px solid #8b5cf655; }
+.banner.warning { background: linear-gradient(90deg, #f43f9e33, #f59e0b26); border-bottom-color: #f43f9e66; }
+.banner.success { background: linear-gradient(90deg, #22c55e2b, #22d3ee1f); border-bottom-color: #22c55e66; }
+.banner .bi { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border-radius: 50%; font-size: 12px; font-weight: 700;
+  background: var(--grad); color: #fff; }
+.banner .bt { flex: 1; white-space: pre-wrap; line-height: 1.4; }
+.banner .bx { font-size: 16px; color: var(--muted); padding: 0 6px; }

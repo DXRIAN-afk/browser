@@ -158,3 +158,23 @@ code { background: var(--soft); padding: 3px 8px; border-radius: 6px; word-break
 .foot { text-align: center; color: var(--muted); font-size: 12px; padding: 0 0 30px; }
 .foot a { color: var(--muted); }
 .sig { letter-spacing: .08em; opacity: .7; }
+
+/* Suche im Kopf, kurze Diagramme, Ankündigungen */
+.gsearch input { width: 200px; margin: 0; padding: 7px 12px; border-radius: 999px; background: var(--soft); }
+.cols.short { height: 130px; }
+.ann { border-left: 4px solid var(--accent); }
+.ann-warning { border-left-color: var(--red); }
+.ann-success { border-left-color: var(--green); }
+.ann.off { opacity: .6; }
+.form textarea { display: block; width: 100%; margin-top: 6px; padding: 9px 12px; font: inherit; color: var(--text); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 9px; outline: none; resize: vertical; }
+.form textarea:focus { border-color: var(--accent); }
+@media (max-width: 860px) { .gsearch { order: 2; flex: 1; } .gsearch input { width: 100%; } }
+
+/* Kopf in zwei Zeilen: oben Logo, Suche, Konto – darunter das Menü */
+.bar { flex-wrap: wrap; height: auto; padding: 10px 20px 0; gap: 8px 20px; }
+.bar .brand { margin-right: auto; }
+.bar nav { order: 3; flex: 1 0 100%; padding: 2px 0 8px; margin: 0 -12px; }
+.bar nav a { padding: 6px 12px; }
+.bar .gsearch input { width: 260px; }
+@media (max-width: 860px) { .bar .gsearch { order: 2; flex: 1 0 100%; } .bar .gsearch input { width: 100%; } .bar nav { order: 4; flex-wrap: wrap; overflow: visible; } }

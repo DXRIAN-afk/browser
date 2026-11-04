@@ -174,10 +174,11 @@ ipcMain.handle('user-info', () => auth && auth.token
 ipcMain.handle('logout', () => logout());
 
 // Server-Anfragen der Oberfläche (der Zugangsschlüssel bleibt im Hauptprozess)
-const UI_ACTIONS = ['me', 'config', 'favorites', 'favorite_add', 'favorite_rename', 'favorite_remove', 'messages', 'message_send'];
+const UI_ACTIONS = ['me', 'config', 'favorites', 'favorite_add', 'favorite_rename', 'favorite_remove', 'messages', 'message_send', 'announcements', 'history'];
 ipcMain.handle('api', async (_e, action, body) => {
   if (!UI_ACTIONS.includes(action) || !auth || !auth.token) throw new Error('Nicht erlaubt');
   try {
+    if (action === 'history' && body) return await api('history&q=' + encodeURIComponent(String(body.q || '')));
     return await api(action, body ? { method: 'POST', body } : {});
   } catch (e) {
     if (e.status === 401) logout('Deine Anmeldung ist abgelaufen oder dein Konto wurde gesperrt.');
@@ -243,7 +244,42 @@ app.on('web-contents-created', (_e, contents) => {
   contents.on('destroyed', () => flush());
 });
 
+// ---- Downloads: direkt in den Download-Ordner, Fortschritt in der Leiste ----
+const downloads = new Map();
+let downloadId = 0;
+function uniquePath(dir, name) {
+  name = name.replace(/[\\/:*?"<>|]/g, '_') || 'download';
+  const ext = path.extname(name), base = name.slice(0, name.length - ext.length);
+  let p = path.join(dir, name), i = 1;
+  while (fs.existsSync(p)) p = path.join(dir, `${base} (${i++})${ext}`);
+  return p;
+}
+function sendDownload(type, data) { if (win && !win.isDestroyed()) win.webContents.send('download', { type, ...data }); }
+
+ipcMain.handle('download-action', (_e, id, what) => {
+  const d = downloads.get(id);
+  if (!d) return;
+  if (what === 'open' && d.state === 'completed') shell.openPath(d.path);
+  if (what === 'folder') shell.showItemInFolder(d.path);
+  if (what === 'cancel' && d.item && d.state === 'progressing') d.item.cancel();
+});
+
 app.whenReady().then(() => {
+  session.defaultSession.on('will-download', (_e, item) => {
+    if (!auth || !auth.token) { item.cancel(); return; }
+    const id = ++downloadId;
+    const savePath = uniquePath(app.getPath('downloads'), item.getFilename());
+    item.setSavePath(savePath);
+    const d = { id, item, path: savePath, state: 'progressing' };
+    downloads.set(id, d);
+    sendDownload('start', { id, name: path.basename(savePath), total: item.getTotalBytes() });
+    item.on('updated', () => sendDownload('progress', { id, received: item.getReceivedBytes(), total: item.getTotalBytes() }));
+    item.once('done', (_ev, state) => {
+      d.state = state; d.item = null;
+      sendDownload('done', { id, state, name: path.basename(savePath) });
+    });
+  });
+
   // Gesperrte Seiten gar nicht erst laden (Tab zeigt dann die Sperr-Seite)
   session.defaultSession.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*'] }, (d, cb) => {
     const frame = d.resourceType === 'mainFrame' || d.resourceType === 'subFrame';
